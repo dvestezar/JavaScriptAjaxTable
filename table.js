@@ -1,7 +1,7 @@
 /*
 ********************* JavaScript Ajax table ********************
 v 2.1.10
-by Dvestezar www.dvesstezar.cz
+by Dvestezar www.dvestezar.cz
 využívá knihovny
   - jQuery (psáno s 1.8.3)
   - JB
