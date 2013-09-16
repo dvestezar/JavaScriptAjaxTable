@@ -1,13 +1,13 @@
-/*
+﻿/*
 ********************* JavaScript Ajax table ********************
-v 2.1.10
-by Dvestezar www.dvestezar.cz
+v 2.2.10
+by Dvestezar www.dvesstezar.cz
 využívá knihovny
   - jQuery (psáno s 1.8.3)
   - JB
 
 použití  tblxxx = new JBajaxtable.init(sqlname,idtbl,{order,fields,sqlparam,order_ren,elementerror,
-  					bodyheight,trsel,trCSS,addquery,ontrcreate,ontdcreate,onheadertdclick,onadddataloaded,onselect})
+						bodyheight,trsel,trCSS,addquery,ontrcreate,ontdcreate,onheadertdclick,onadddataloaded,onselect})
 
 	kde
 		idtbl		= ID DIVu pro tabulku - text id elementu v html (div musí existovat třeba jen <div id="xxx"></div>)
@@ -45,6 +45,51 @@ použití  tblxxx = new JBajaxtable.init(sqlname,idtbl,{order,fields,sqlparam,or
 						- př.: v sql  proměnné @dt a @neco definujeme jako objekt
 							{dt:'2011-11-01',neco:'cokoliv'}
 			scriptfilename = možnost změnit základní ovládací script 'get_tbl.asp'
+			
+			offlinedata = pole které je normálně vraceno jako JSON, pokud je použito toto, nebude volán ajax JSON, ale vemou se data z této proměnné
+						bude ignorováno vše co je spojené s online definicí a aktualizací jako sqlname sqlparam, scriptfilename order ordering atp ...
+						!!! sqlname musí být zadáno jako prázdný řetězec !!!!
+						U offline nefunguje refresh a menu pro zobrazení sloupců a autorefresh
+						není ignorováno fileds
+						data musí mít formát jako JSON co vrací ajax, povinné je data nebo ArrData a nepovinné adddata
+						
+						ostatní povinná property ajax JSON se nastaví automaticky
+						tj.
+							{
+								data:assocarray,
+								ArrData:headarray,
+								adddata:{
+									table1:{assocarray},
+									table2:{assocarray}
+								},
+								msg:'OK',		//automat
+								sel:0,			//automat
+								pg:0,			//automat
+								maxrow:9999999,	//automat
+								cnt:1,			//automat
+								colsinfo : undef //nevyužito
+							}
+						
+						
+						Příklad headarray
+						1.index musí obsahovat názvy fieldů
+						2. a následující jsou data fieldů
+						př.
+						[
+							[fieldname1,filedname2, ....],
+							[valfield1,valfiled2, ....],	//1.row dat nebo row index 0
+							[valfield1,valfiled2, ....],	//2.row dat nebo row index 1
+							....
+						]
+			
+						Příklad assocarray
+						[
+							{'filedname1':'value','filedname2':value}, //row 1 index0
+							{'filedname1':'value','filedname2':value}, //row 2 index1
+							....
+							n_row
+						]
+						
 			ordering = jestli má být dostupná fukce řazení a jestli zobrazovat jak je řazeno, default je true
 			order_ren	= objekt podmínek řazení
 						  {fieldname:{s:'zobrazene jmeno v řádku řezeno',da:'definice řazení sestupně',dc:'definice řazení vzestupně'},fieldname2:{s:'xx',da:'def asc',dc:'def desc'}...}
@@ -415,7 +460,8 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 	var onemptydata;
 	var ondblclick;
 	var sqlparamfn;
-
+	
+	var offlinedata; // data která budou použita pokud chceme tabulku jako offline
 
 	this.ResetAddDataFlag=function () {
 		add_query_get=false;
@@ -436,13 +482,11 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 		style.type = 'text/css';
 		
 		var a = '#test_tbl_ajax table{border-collapse: collapse;}';
-		a +='.ajaxtblhead,.ajaxtblbody,.ajaxtblfoot,.ajaxtblerr,.ajaxtblhead>td,.ajaxtblbody>td,.ajaxtblfoot>td,.ajaxtblerr>td{margin: 0px;padding: 0px;}';
-		a +='.ajaxtblbodyinner td,.ajaxtblheadinner td {border: 1px black solid;margin:0px;padding:1px;}';
 		a +='.ajaxtblheadinner {cursor: pointer;}';
 		a +='.ajaxtblhead{position:absolute}';
 		a +='.ajaxtblheadmenudiv{position:absolute;display:none}'
 		/*	musí být na konci definice CSS pro tabulku/y jinak difinice
-			ajaxtblbodyinner_tr1 a ajaxtblbodyinner_tr1 přepíší sel_lf, pokud je
+			ajaxtblbodyinner_tr1 a ajaxtblbodyinner_tr1 přepíší sel_lr, pokud je
 			při vytváření vnucena jiná definice, musí být tato na konci CSS
 			
 			.sel_lr{background-color: #ffacac;}
@@ -455,11 +499,19 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			style.appendChild(rules);
 		document.getElementsByTagName('head')[0].appendChild(style);
 	}
+	function offline_data_exists(p){
+		//p= objek properties z inicializace tabulky
+		//vrací true, pokud offline data existují
+		if(p==undefined)return false;
+		if(p.offlinedata==undefined)return false;
+		return true;
+	}
 	
 	this.init = function (sqlname,idtbl,p){
 		lang=JBajaxtable_var.lang;
 		sqlname=String(sqlname);
-		if(sqlname.length<1)return;
+		if(!offline_data_exists(p))
+			if(sqlname.length<1)return;
 		var a=document.getElementById(idtbl);
 		if(a==undefined)return;
 		if(String(a.tagName).toLowerCase()!='div')return;
@@ -491,6 +543,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 		b=mtbl.insertRow(-1);
 		b.className='ajaxtblord';
 		tblr=b.insertCell(-1);//text jak řazeno
+		tblr.style.display='none';
 
 		b=mtbl.insertRow(-1);
 		b.className='ajaxtblhead';
@@ -562,13 +615,15 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 				if((p.ordering==true)||(p.ordering==false))ord_enable=p.ordering;
 			}
 			if(p.firstread==undefined)p.firstread=true;
-			if(p.autorefresh!=undefined)
-				if(/^\d\d*$/gi.test(String(p.autorefresh))){ //is integer
-					autorefresh=p.autorefresh*1;
-					if(autorefresh!=0){
-						if(autorefresh<60)autorefresh=60;
+			if(p.offlinedata==undefined){
+				if(p.autorefresh!=undefined)
+					if(/^\d\d*$/gi.test(String(p.autorefresh))){ //is integer
+						autorefresh=p.autorefresh*1;
+						if(autorefresh!=0){
+							if(autorefresh<60)autorefresh=60;
+						}
 					}
-				}
+			}
 			if(p.selectable!=undefined)
 				selectable=p.selectable;
 			if(p.multiselect!=undefined)
@@ -587,6 +642,8 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 				onemptydata=p.onemptydata;
 			if(p.ondblclick!=undefined)
 				ondblclick=p.ondblclick;
+			if(p.offlinedata!=undefined)
+				offlinedata=p.offlinedata;
 		}else{
 			p={};
 			p.firstread=true;
@@ -671,23 +728,29 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 		}else{
 			mr=mr.vis;
 		}
-		ajx = jQuery.ajax({
-			url:fscriptfilename,
-			type:"post",
-			data:{
-				s:sql,					//identifikace SQL dotazu - název
-				o:get_order_string(),	//řetězec řazení jen to co je za ORDER BY
-				p:sqlp,					//objekt parametrů
-				a:((b)?addquery:''),	//pokud se mají znovu načíst dodatečné dotazy, tak a obsahuje addquery
-				pg:lastpg,				//poslední použitá stránka
-				table:IDtbl,			//id tabulky - záleží na využití skriptem serveru
-				max_row:mr  			//max záznamů na řádek
-			},
-			dataType:'text',//bez procesingu
-			success:function(response,status,jqXHR){
-				ELtbl.ajxtbl.gen(jqXHR);
-			}
-		});
+		if(offlinedata==undefined){
+			ajx = jQuery.ajax({
+				url:fscriptfilename,
+				type:"post",
+				data:{
+					s:sql,					//identifikace SQL dotazu - název
+					o:get_order_string(),	//řetězec řazení jen to co je za ORDER BY
+					p:sqlp,					//objekt parametrů
+					a:((b)?addquery:''),	//pokud se mají znovu načíst dodatečné dotazy, tak a obsahuje addquery
+					pg:lastpg,				//poslední použitá stránka
+					table:IDtbl,			//id tabulky - záleží na využití skriptem serveru
+					max_row:mr  			//max záznamů na řádek
+				},
+				dataType:'text',//bez procesingu
+				success:function(response,status,jqXHR){
+					ELtbl.ajxtbl.gen(jqXHR);
+				}
+			});
+		}else{
+			r={};
+			r.status=200;
+			ELtbl.ajxtbl.gen(r);
+		}
 		return true;
 	}
 	this.gen= function(response){
@@ -698,7 +761,23 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			return;
 		}
 		try{
-			a=jQuery.parseJSON(response.responseText);
+			if(offlinedata==undefined){
+				a=jQuery.parseJSON(response.responseText);
+			}else{
+				a=offlinedata;
+				ok=true;
+				if(a.ArrData==undefined)ok=false;
+				if(a.ArrData==null)ok=false;
+				if(ok){
+					a.msg='OK';        
+				}else{
+					a.msg='EMPTY';
+				}
+				a.sel=0;
+				a.pg=0;
+				a.maxrow=9999999;
+				a.cnt=1;
+			}
 			// server vrátí json objekt kde msg: obsahuje stavovou zprávu pokud = "OK" tak pokračuje
 			//proveď základní ověřovací testy
 			//a musí být objekt
@@ -719,7 +798,14 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 					//může být empty ale může mát adddata
 					this.testadddata(a);
 					//pokud obsahuje "empty" tak byl vrácen prázdný odkaz
-					a=lang.empty+'   <a href="" onclick="try{document.getElementById(\''+IDtbl+'\').ajxtbl.refresh();}catch(e){alert(e)};return false;">' + lang.tblrefr + '</a>';
+					a=lang.empty;
+					if(offlinedata==undefined){
+						a+='   <a href="" onclick="try{document.getElementById(\''+IDtbl+'\').ajxtbl.refresh();}catch(e){alert(e)};return false;">' + lang.tblrefr + '</a>';
+					}
+					
+					tblr.style.display='none';
+					tblf.style.display='none';
+					
 					if(!JB.is.und(onemptydata)){
 						try{
 							onemptydata();
@@ -1091,19 +1177,22 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			this.err.set('');//smaž error hlášení
 			
 			tblr.innerHTML='';
+			tblr.style.display='';
 			gen_order_showstring(tblr);
 			// přidej řazeno podle s refresh
 			ob=JB.x.cel('div',{ob:tblr,csN:'ajaxtblheadotherbuttonmain',ad:{toto:this}});
 			div_right_menu=ob;
 			//tlačítko obnov
-			a=JB.x.cel('div',{ob:ob,csN:'ajaxtblheadrefr ajaxheaderbuttonlink',ad:{toto:this,
-				onclick:function(){
-					try{this.toto.refresh();}catch(e){alert(e);}
-					return false;
-				}
-			}});
-			a=JB.x.tx(lang.tblrefr,{ob:a,pop:lang.tblrefr_alt,csN:'ajaxtblheadrefrlink ajaxheaderbuttoninnerlink'});
-			autorefrtx=JB.x.tx('',{ob:a,csN:'ajaxtblheadrefrlink ajaxheaderbuttoninnerlink'});
+			if(offlinedata==undefined){
+				a=JB.x.cel('div',{ob:ob,csN:'ajaxtblheadrefr ajaxheaderbuttonlink',ad:{toto:this,
+					onclick:function(){
+						try{this.toto.refresh();}catch(e){alert(e);}
+						return false;
+					}
+				}});
+				a=JB.x.tx(lang.tblrefr,{ob:a,pop:lang.tblrefr_alt,csN:'ajaxtblheadrefrlink ajaxheaderbuttoninnerlink'});
+				autorefrtx=JB.x.tx('',{ob:a,csN:'ajaxtblheadrefrlink ajaxheaderbuttoninnerlink'});
+			}
 			
 			//todo menu
 			//tlačítko menu
@@ -1145,6 +1234,9 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			this.setNadpis(nadp_text);
 			this.setSouhrn(suma_text);
 			this.setPopis(popis_text);
+
+			tblr.style.display=((/^\s*$/.test(tblr.innerHTML))?'none':'');
+			tblf.style.display=((/^\s*$/.test(tblf.innerHTML))?'none':'');
 		}
 	}
 	function add_menu_btn(tx,o){
