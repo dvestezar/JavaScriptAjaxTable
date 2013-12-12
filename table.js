@@ -1,345 +1,11 @@
 ﻿/*
 ********************* JavaScript Ajax table ********************
-v 2.2.10
+v 2.2.2
 by Dvestezar www.dvesstezar.cz
 využívá knihovny
   - jQuery (psáno s 1.8.3)
   - JB
 
-použití  tblxxx = new JBajaxtable.init(sqlname,idtbl,{order,fields,sqlparam,order_ren,elementerror,
-						bodyheight,trsel,trCSS,addquery,ontrcreate,ontdcreate,onheadertdclick,onadddataloaded,onselect})
-
-	kde
-		idtbl		= ID DIVu pro tabulku - text id elementu v html (div musí existovat třeba jen <div id="xxx"></div>)
-		sqlname		= jméno sql řetězce z XML
-		objekt nepovinných parametrů
-			title		= nastaví nadpis tabulky, na následující změny lze použít funkci .setNadpis, pokud není zadáno, je použito '' a TR s nadpisem je skryt
-			firstread	= jestli se mají data načíst pri inicializaci, nebo bude první načtění vyvoláno až kódem přes refresh
-						default je true
-			order		= jméno fieldu podle kterého se má řadit / pro sestupné se přidá ' DESC' tj 'fieldxxx desc'
-			fields		= definování názvů a skrytí fieldu
-						- object {'filed':'nazev','field2':'nazev2'}
-							kde
-								field = název fieldu u SQL - používat uzavírání v apostrofech, protože SQL dotazy používají jména jako 'tabulka.field'
-								nazev = název který bude zobrazen,
-									  pokud
-										1) je zadán prázdný název, bude field(sloupec) vynechán
-										2) pokud bude první znak vykřičník, nebude na tomto fieldu(sloupci) fungovat řazení kliknutím na hlavičku sloupce
-			selectable	=	default=prázdný řetězec jinak obsahuje řetězec názvu klíčového fieldu
-							pokud je název nalezen, tak je zprovozněno vybírání řádků a propertie tohoto objectu ".val", popis viz níže,
-							v základu jde vybrat jen jeden řádek, viz další proměnná
-			multiselect =   default je false, pokud není zadána předchozí proměnná, je tato volba ignorována
-							pokud true, lze vybrat více řádků, ovlivňuje propertie tohoto objektu ".val" viz níže
-							tato hodnota lze měnit za běhu funkcí na tomto objektu ".changeMultiselect(bool)"
-			set_element_on_sel = default undefined pokud nastaveno tak obsahuje HTML form element nebo jeho string ID, jako je textarea, text, hidden atp.,
-							který bude nasteven po selectu
-			sel_element_json = default=false, pokud true, vrátí do value elementu vybrané hodnoty(pole) jako JSON text
-			set_HTMLinner_on_sel = default undefined pokud nastaveno tak bude nstaveno HTMLinner objektu - 
-							bsahuje HTML jakýkoliv element nebo jeho string ID, jako je DIV SPAN atp
-			
-			showfilters = jestli se má zobrazit tlačítko pro filtrování sloupců, max počtu řádků atp. v hlavičce
-						default je false (bezpečnost)
-			sqlparam	= objekt parametrů které budou odeslány jako json string v parametru "p"
-						př.: skrip na serveru nahradí v řetězci SQL parametry z této proměnné
-						- v sql dotazu jsou definovány proměnné začínající znakem @
-						- př.: v sql  proměnné @dt a @neco definujeme jako objekt
-							{dt:'2011-11-01',neco:'cokoliv'}
-			scriptfilename = možnost změnit základní ovládací script 'get_tbl.asp'
-			
-			offlinedata = pole které je normálně vraceno jako JSON, pokud je použito toto, nebude volán ajax JSON, ale vemou se data z této proměnné
-						bude ignorováno vše co je spojené s online definicí a aktualizací jako sqlname sqlparam, scriptfilename order ordering atp ...
-						!!! sqlname musí být zadáno jako prázdný řetězec !!!!
-						U offline nefunguje refresh a menu pro zobrazení sloupců a autorefresh
-						není ignorováno fileds
-						data musí mít formát jako JSON co vrací ajax, povinné je data nebo ArrData a nepovinné adddata
-						
-						ostatní povinná property ajax JSON se nastaví automaticky
-						tj.
-							{
-								data:assocarray,
-								ArrData:headarray,
-								adddata:{
-									table1:{assocarray},
-									table2:{assocarray}
-								},
-								msg:'OK',		//automat
-								sel:0,			//automat
-								pg:0,			//automat
-								maxrow:9999999,	//automat
-								cnt:1,			//automat
-								colsinfo : undef //nevyužito
-							}
-						
-						
-						Příklad headarray
-						1.index musí obsahovat názvy fieldů
-						2. a následující jsou data fieldů
-						př.
-						[
-							[fieldname1,filedname2, ....],
-							[valfield1,valfiled2, ....],	//1.row dat nebo row index 0
-							[valfield1,valfiled2, ....],	//2.row dat nebo row index 1
-							....
-						]
-			
-						Příklad assocarray
-						[
-							{'filedname1':'value','filedname2':value}, //row 1 index0
-							{'filedname1':'value','filedname2':value}, //row 2 index1
-							....
-							n_row
-						]
-						
-			ordering = jestli má být dostupná fukce řazení a jestli zobrazovat jak je řazeno, default je true
-			order_ren	= objekt podmínek řazení
-						  {fieldname:{s:'zobrazene jmeno v řádku řezeno',da:'definice řazení sestupně',dc:'definice řazení vzestupně'},fieldname2:{s:'xx',da:'def asc',dc:'def desc'}...}
-						!!! fieldname se doporučuje používat v apostrofech - SQL může používat jména fieldu jako 'tabulka.field'
-						- pokud není použito je pro řazení použito fieldů z headeru tabulky pro daný sloupec
-						  tzn. pokud klikneme na header sloupce 1 kde jméno je fielname bude do SQL použito 'ORDER BY diledname popř DESC'
-						  
-						  kde
-							da = pokud má první sloupec jmeno fieldu 'fieldname', pak po kliknutí na sloupec
-							     nebude použito 'order by fieldname' ale podle 'da' 'order by 'definice řazení sestupně''
-							     tak lze zadat kombinované řazení jako např. 'filed1 desc, field2, field3 desc'
-							     po znovukliknutí na header sloupce je použito definice z 'dc'
-							dc = pokud není zadáno 'dc' tak je umožněno řazení jen podle 'da'
-							s  = zobrazené jméno které je zobrazeno pro tuto definici
-
-							filedname je skutečný název fieldu z sql
-							
-						  takto lze zadat složitá řazení s jednoduchým zobrazení názvu
-						  's' a 'da' musí být zadány, jinak nebudou použity
-						  
-						  pro zobrazení názvů řazení fieldů je použit buď přímo fieldname, nebo názvu
-						  z předchozího object parametru 'fields' - definování názvů a skrytí fieldu
-						  
-			ordermax	= default = 2
-						 kolik se má pamatovat kliknutí řazení
-						 př.: klikneme na sloupec1(filed1) budeme řatit podle field1
-						      dál klikneme na sloupec2(field2) tak budeme řadit podle field2 a potom field1
-						      dál klikneme na sloupec3(field3) tak budeme řadit podle field3 a potom field2
-						      dál klikneme na sloupec3(field3) tak budeme řadit podle field3 desc a potom field2
-							    -změní se jen řazení field3
-						      dál klikneme na sloupec2(field2) tak budeme řadit podle field2 a potom field3
-						      dál klikneme na sloupec1(field1) tak budeme řadit podle field1 a potom field2
-							  atd...
-			
-			addquery	= řetězec názvů dotazů SQL definovaných v XML, parametry jsou použity z předchozího parametry
-						pro toto nelze použít order, jen v definici XML
-						př:'dotaz1,dotaz2'
-						script serveru vrádí dodatečné dotazy v root vrácených dat jako add_data.dotazx.data
-						toto je provedeno jen jednou při prvním spuštění(načtení stránky a inisializaci)
-						tyto data jsou připojeny k hlavním DIV jako property .add_data
-						tzn. přístup k nim z venku je 
-						  document.getElementById('xxx').add_data
-						zevnitř
-						  ELtbl.add_data
-						-pokud potřebujeme znovu načíst dodatečná data zavoláme .ResetAddDataFlag() .refresh()
-			addquery_eve - default je false, pokud true tak adddata jsou načtená pokaždé, pokud false tak platí předchozí
-			
-			printname	= obsah nadpisu na tisknuté stránce, pokud není zadáno je použit default 'Tisk AJAX Table'
-							lze ovlivnit funkcí SetPrintName(name)
-			showprint	= když false tak není v hlavičce zobrazen odkaz na Tisk, pokud není zadáno tak je použit default true
-			
-			autorefresh = default 0 , 0=zakázáno, jinak čas v sekundách kdy se bude tabulka obnovovat (min je 60s)
-			
-			elementerror= html element DIV který bude obsahovat chybové zprávy
-						- pokud není zadán, bude vytvořen pod FOOT tabulky řádek ve kterém se zprávy budou zobrazovat
-			bodyheight	= pokud je nastaveno, tak se omezí velikost těla tabulky na určenou výšku (zadává se jako řetězec i s jednotkami jako px atp.)
-						tzn.hlavička bude stálá a tělo bude scrollovatelné
-			trsel		= bude zvýrazněno CSStřídou trCSS pokud true - default je true / nemusí být zadáno
-			trCSS		= definování CSS třídy pro zvýraznění, pokud je trsel true - default CSS je sel_lr
-			
-	Events:
-			sqlparamfn  = funkce pro získání objektu parametrů při refresh, fn je volána před odesláním parametrů
-							- funkce je volána funkce(objekt_sqlparametru)
-							- tato funkce může objekt paramterů generovat, v tom případě je sqlparam ignorováno
-								tzn. objekt_sqlparametru zapomenout a zcela vygenerovat nový
-							- pokud funkce vrátí null, tak není dotaz proveden, bude zastaveno refresh - refresh je tímto zakázán, např chybné údaje
-							- jinak musí funkce vrátit objekt parametrů, který je převeden do json string a odeslán jako parametr "p"
-			onbefortrcreate = fn folaná před vytvořením elementu řádky function(tbl,newdata,olddata,idx)
-						kde
-						- tbl je element tabulky
-							-> tbl.toto = tento object
-							-> tbl.var = pole dat z kterých je generovaná tabulka
-						- olddata jsou data pro předešlý řádek
-						- newdata jsou data pro nový řádek
-						- idx je index řádku z pole dat
-			ontrcreate	= fn volaná před vytvořením řádku tabulky, tj TR je vytvořen ale není vyplněn buňkami function(tr)
-						kde
-						tr je element řádky tabulky
-						tr.val jsou objekt ze kterého se generuje řádek
-						potom 
-						tr.val.fieldnameN0=value
-						až
-						tr.val.fieldnameNx=value
-						tr.val={field1:val1,field2:val2 ....}
-			onaftertrcreate = jako předchozí onbefortrcreate ale je volána až po vytvoření řádky, parametry stejné
-			ontdcreate	= fn volaná při vytvoření buňky tabulky function(td) 
-						kde
-						td je element buňky tabulky
-						td.val je hodnota kterou obsahuje buňka
-						td.field je název fieldu (sloupce)			
-			onheadertdclick = fn volaná při kliknutí na buňku v hlavičce tabulky function(td) kde td je elemen buňky tabulky
-						-funkce může vrátit false pro zákázání provedení interního (zmenu)řazení, které je standartně provedeno
-			ondblclick	= fn volaná při dvojkliku na datové buňky - function() přístup k datům je přes this, this=objekt tr tzn this.val jsou data řádku tr.val
-			onadddataloaded = fn je volána jen při načtení dodatečných dat (script serveru je vrátí) function(add_data) kde add_data je objekt vrácených dat
-							tato fn je volána i když jsou hlavní data EMPTY
-			ondataloaded = fn(odkaz na element div pro tabulku) je volána po načtení dat pro tabulku, těsně před jejím generování(tabulka je zrovna smazána, přístup k datům jako předchozí)
-			onemptydata  = fn je volána, když byly vráceny prázdná data, v tomto případě není volána ani onadddataloaded ani ondataloaded, tato funkce je pro ošetření
-			ontablefinish = fn(odkaz na element div pro tabulku) je volána po vygenerování tabulky
-			onselect	= fn volaná při kliknutí myší na řádek - function() ve funkci this.val je přístup k datům
-		
-jediné povinné údaje jsou sqlnane, a idtable
-přístup k objektu je zajištěn vytvořenou proměnnou v DIVu volaného při vytváření
-	document.getElementById('xxx').ajxtbl
-		kde xxx je ID DIVu ve kterém je tabulka vytvářena
-
-přístup do objektu je také možný přes proměnnou která je vrácena funkcí při jeho vytváření, pokud je var používána globálně
-
-proměnné využitelné pro případné funkce ontrcreate,ontdcreate
-	na každém td bude vytvořeno property
-		.val = hodnota buňky
-		.field = skutečný název fieldu z sql(toto je i u buněk hlavičky, hlavička nemá hodnotu .val)
-		.toto = tento objekt
-		.tbl = je element tabulky
-		.tr je odkaz na objekt fieldů ze kterého je generován řádek, stejné jako tr.val
-		.tr_el = odkaz na element TR který obsahuje tuto buňku
-	na každém tr těla tabulky bude vytvořen property
-		.val = objekt z kterého byl generován řádek tzn.: {field1:val1,field2:val2 ....}
-		.toto = tento objekt
-		.tbl = je element tabulky
-	document.getElementById('xxx').ajxtbl.val
-		- obsahuje objekt poslední načtená data přes ajax, z těchto dat je generována tabulka
-		  obsahuje i info o stránce, počtu řádků, omezení řádků atp
-		  objekt
-			.data = pole objektů - řádků
-			.cnt  = celk.počet záznamů
-			.maxrow = na kolik je omezeno zobrazení počtu řádků
-			.pg	 = max.strana (pro zobrazení počet stran je pg+1)
-			.sel	 = vybraná strana (pro zobrazení strany je sel+1)
-			.msg  = musí se rovnat "OK", jinak obsahuje chybu vrácenou serverem
-		  pokud je cnt>maxrov tak je použito stránkování
-
-funkce použitelné zvenku
-	.setNadpis(tx) = změna nadpisu tabulky, '' skryje TR nadpisu
-	.setSouhrn(tx) = změna souhrnu tabulky
-	.setPopis(tx)  = změna popisu tabulky
-	popis a souhrn se maží s update nebo clear tabulky
-	
-	.refresh()
-		- document.getElementById('xxx').ajxtbl.refresh()
-		  nebo přímo proměnnou získanou při vytvoření  inic_var.refresh()
-		provede znovunačtení a vygenerování tabulky podle zapamatovaných nebo změněných údajů
-		- ! vrací
-			true - pokud je vše OK
-			false - pokud v uživatelské funkci get sql param došlo k chybě, jako třeba špatně vyplněný formulář
-	.ResetAddDataFlag()
-		- resetuje příznak načtení dodatečných dat, tzn.při příštím refresh nebo operaci s tabulkou budou znovu načtena
-	.SetCollVisible(fieldname,visible)
-		- nastaví viditelnost sloupce na ano/ne / nastavení neviditelnosti v objektu "fields" při vytváření má prioritu
-		- "visible" = true/false
-		- "fieldname" = je jméno fieldu, který má být skryt
-		
-	.getTableRef() vrátí referenci na htmlelement object tabulky
-	.SetPrintName(name) nastaví print nadpis
-	
-	.val() vrátí vybrané hodnoty z označených řádků jako pole řetězců podle voleb při vytváření viz výše - selectable	multiselect
-			pokud multiselect = false tak je vráceno jednorozměrné pole, pokud není select zprovozněno, tak je vráceno jen []
-			vybírá podle klíče v "selectable" při vytváření
-	.val(array) vybere(označí) řádky podle vstupního pole řetezců
-			pokud multiselect = false tak je vybrána hodnota v poli[0]
-			př:["1","ba"] vybere řádky, které obsahují tyto hodnoty, podle klíče v "selectable" při vytváření
-	.GetLastSelectedVal() vrací hodnotu posledního vybraného řádku podle selectable
-	.changeMultiselect(bool) nastaví multiselect
-	
-funkce ovlivňující SQL hledání z venku
-	volají se přes podle id hlavního DIV volaného při inicializaci
-	- př: pokud vytváříme tabulku v DIV ID="xxx" tak funkce voláme
-	document.getElementById('xxx').ajxtbl.SetOrder('filed desc,field2,field3 desc')
-	nebo přímo inic_var.SetOrder('filed desc,field2,field3 desc')
-	
-	- př2:pokud v SQL řetězci máme definovány proměnné @od a @do
-		funkce nepřepisuje ale definuje nový objekt, takže pokud některé proměnné nehceme měnit, musejí být stejně definovány
-	document.getElementById('xxx').ajxtbl.SetParam({od:'2011-11-01',do:'2011-12-01'})
-	nebo přímo inic_var.SetParam({od:'2011-11-01',do:'2011-12-01'})
-
-	SetOrder(order)
-		Nastavení řazení SQL dotazu (ORDER BY) obsahuje jen to co by mělo být za order by
-	SetParam(param)
-		params = objekt jako sqlparams při vytváření
-		Nastavení parametrů hledání přes proměnné (WHERE) nebo podle zpracování na straně serverscriptu
-		
-	př.SQL řetězce:
-	select kdo,kdy from tabulka where kdy between '@od' and '@do'
-		doplnění order a datumů zajistí serverscript 
-
-
-CSS
-hlavní DIV/pouzdřící tabulka>TR(head,body,foot,err)/tabulka(head,body) - foot a err nemají tabulku jen innerHTML)
-
-ajaxtblmain = TABLE pouzdřící tabulka každý řádek obsahuje hlavní složku jaho head, body atp, v body je tabulka dat
-
-ajaxtblnadpis = TR řádek pro nadpis tabulky nastavuje se setNadpis
-ajaxtblpopis = TR kam se dává popis tabulky, nastavuje se setPopis
-ajaxtblord	= TR řádek kde je zobrazen text jak je řazeno a obnov tabulku
-ajaxtblhead = TR řádek head, je v něm uložena pohyblivá hlavička tabulky při omezené výšce tabulky
-ajaxtblbody = TR řádek obsahující tabulku s daty
-	ajaxtblbodydata = TABLE obsahující data, tj tabulka se názvy řádků a daty
-ajaxtblsuma = TR pro zobrazení zesumírování tabulky nastavuje se setSouhrn
-ajaxtblfoot = TR řádek foot, pro zobrazení poštu stránek skriptem
-ajaxtblerr  = TR nevyužit pokud není zadán externí element, jinak řádek s případnou chybou
-
-ajax_tbl_td_head_disabled, ajax_tbl_td_head_enabled = je aplikováno na buňku v hlavičce tabulky, enabled pokud je umožněno kliknutím řazení
-
-ajaxtblheadinner = TR  řádek hlavičky
-	--> jeho buňky TD obsahují CSS "tr0" až "trNN" kde NN je číslo sloupce
-ajaxtblbodyinner = TR (vždy je definován s ajaxtblbodyinner_tr0 nebo ajaxtblbodyinner_tr1 tr0 má každý první a tr1 každý druhá řádek)
-    --> jeho buňky TD obsahují CSS "tr0" až "trNN" kde NN je číslo sloupce
-
-ajaxtblbodyinner_tr0 = obsahuje každý první řádek TR těla dat
-ajaxtblbodyinner_tr1 = obsahuje druhý první řádek TR těla dat
-
-
-******** formát tlačítek v hlavičce a footu *********
-pro všechny tlačítka platí
-ajaxheaderbuttonlink = DIV odkazu nápisu
-	-->ajaxheaderbuttoninnerlink = formát LINK v DIVu
-	
-navíc přidány css k předchozím tzn DIV tlačítka obsahuje např "ajaxheaderbuttonlink ajaxtblheadprint"
-	ajaxtblheadotherbuttonmain = DIV pozdro pro ostatní tlačítka
-		--> ajaxtblheadprint	=	DIV odkazu nápisu tisk v hlavičve tabulky
-			--> ajaxtblheadprintlink = LINK tisk v hlavičve tabulky
-
-		jako předchozí pro buton print
-		--> ajaxtblheadrefr
-			-->ajaxtblheadrefrlink
-			
-		jako předchozí, pro ostatní v DIVu ajaxtblheadotherbuttonmain
-		--> ajaxtblhead_other
-			-->ajaxtblhead_other_link
-		
-
-	ajaxtblheadordermain = pouzdro pro text a tlačítka řazení
-		-->ajaxtblheadordermaintx =SPAN "řazeno podle"
-		-->ajaxtblheadorder = jako předchozí pro butony print
-			-->ajaxtblheadorder = jako předchozí pro butony print
-
-			
-	ajaxtblheadmenudiv = je DIV menu vyvolané po stisku tlačítka menu v hlavičce, přístup lze také přes ID #ajax_tbl_menu_div
-	   každý button
-			.ajaxtblheadmenubtn
-				.ajaxtblheadmenulink
-				
-************* pár tipů *******************
-- obarvení řádku tabulky při najetí myši - jen řádek s daty
-	pomocí CSS
-	.ajaxtblbodyinner:hover{
-		color: #C60000;
-		background-color: #FF9999;	
-	}
-	
-	
 následující je globální language proměnná
 */
 var JBajaxtable_var = {
@@ -419,6 +85,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 	var order_ren = {}; //definice fieldů řezení
 	var sqlp = {};//parametry SQL
 	var ELerr;//elemend error div
+	var ExtElerr=false;//false pokud je error element ve foot tabulky
 	var ajx; //ajax object
 	var mtbl;//hlavní tabulka pro rozdělění head,body,foot
 	var nadp; //nadpis tabulky
@@ -567,13 +234,16 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			if(p.order!=undefined)ord=trans_ord(p.order);
 			//funkce pro vygenerování parametrů
 			if(p.sqlparam!=undefined)
-				sqlp=JSON.stringify(p.sqlparam);
+				sqlp=JSON.stringify(p.sqlparam).convToUniEsc();
 			if(p.sqlparamfn!=undefined)
 				sqlparamfn=p.sqlparamfn;
 			b='';
+			ExtElerr=false;
 			if(p.elementerror!=undefined){
 				if(String(p.elementerror.tagName).toLowerCase()=='div'){
+					//použij zadaný externí element pokud je DIV
 					ELerr=p.elementerror;
+					ExtElerr=true;// nastav, že se jedná o externí div - jen informativní
 				}else{
 					b=mtbl.insertRow(-1);
 				}
@@ -657,12 +327,14 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 	}
 	this.err = {};
 	this.err.set = function(x){
-		if(ELerr!=undefined)
+		if(ELerr!=undefined){
 			ELerr.innerHTML=x;
+		}
 	}
 	this.err.add = function(x){
-		if(ELerr!=undefined)
-			ELerr.innerHTML+=x;
+		if(ELerr!=undefined){
+			ELerr.innerHTML+='<br />'+x;
+		}
 	}
 	function DelInnerAndChield(el){
 		el.innerHTML='';
@@ -700,15 +372,39 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 		this.err.set('');	
 	}
 	
+	function escape_internac_char(x){
+		var key;
+		for(key in x){
+			if(typeof x[key] == 'string'){
+				x[key]=x[key].convToUniEsc();
+			}else
+			if(typeof x[key] == 'object'){
+				x[key]=escape_internac_char(x[key]);
+			}
+		}
+		return x;
+	}
 	this.refresh = function(){
 		var b,el,d,dd;
 
+		//sqlp je již hotový řetězec JSON na poslání - není potřeba jej nijak měnit
 		if(sqlparamfn!=undefined){
-			sqlp=sqlparamfn(sqlp);
-			if(sqlp==null)
+			//při volání funkce se musí sqlp převést na objekt
+			try{
+				b=JSON.parse(sqlp);
+			}catch(e){
+				b={};
+			}
+			try{
+				b=sqlparamfn(b);
+			}catch(e){
+				alert('Chyba scriptu : event sqlparamfn - '+e);
+				b=null;
+			}
+			if(b==null)
 				return false;
-			sqlp=JSON.stringify(sqlp).convToUniEsc();
-		}		
+			sqlp=JSON.stringify(b).convToUniEsc();
+		}
 
 		d=suma_text;
 		dd=popis_text;
@@ -814,6 +510,20 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 						};
 					}
 					this.err.set(a);
+					
+					//toto je definováno i ve funkci this.gen_tbl,
+					//redefinováno tady	protože při empty data by ondadaloaded nenastalo
+					if(OnDtLd!=undefined){try{OnDtLd(ELtbl,true);}catch(e){
+						this.err.add('Error ondataloaded fn : '+e.message+'<br><br>');
+					}}
+
+					//tabulka finišuje
+					//toto je definováno i ve funkci this.gen_tbl
+					//redefinováno tady	protože protože při empty data by nebylo voláno
+					if(OnTblFns!=undefined){try{OnTblFns(ELtbl,true);}catch(e){
+						this.err.add('Error ontablefinish fn : '+e.message);
+					}}
+					
 					return;					
 				}else{
 					//jinak chyba
@@ -986,7 +696,10 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 		var it=d.cnt; 	//celkový počet nalezených údajů
 		var max=d.maxrow; //jaký max zobrazených řádků počet je definován
 		var sel=d.sel;	// která strana je aktivní
-		var chb='';
+		var chb='';		// chyby této funkce, na konci se přičtou do lementu, v průběhu event funkcí lze
+						// používat tento_objekt.err.add(tx)
+		
+		this.err.set('');//smaž error hlášení
 
 		if(JB.is.und(d.data)){
 			if(JB.is.und(d.ArrData)){
@@ -1018,9 +731,14 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 		}
 		
 		var cnt=d.length; //počet zobrazených údajů
-		if(OnDtLd!=undefined){try{OnDtLd(ELtbl);}catch(e){
-				chb += 'Error ondataload fn : '+e.message+'<br><br>';
+		
+		
+		//toto je definováno i ve funkci this.gen, protože při empty data by nebylo voláno
+		if(OnDtLd!=undefined){try{OnDtLd(ELtbl,false);}catch(e){
+				chb += 'Error ondataloaded fn : '+e.message+'<br><br>';
 		}}
+		
+		
 		d=d.data;
 		last_data=d;
 		if(d.length>0){
@@ -1054,6 +772,9 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 				tr.onmouseout=function(){jQuery(this).removeClass(trCSS+'');}
 				//při kliknutí na buňku
 				tr.sel=false;
+				
+				//this.err.add('Test err');//testovací chyba v průběhu
+				
 				if(selectuj){
 					jQuery(tr).click(function(e){
 						// selectování řádků
@@ -1174,7 +895,6 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 					ELtblH=(ELtbl.clientHeight+2)+'px';//2 je rezerva
 					ELtbl.style.height=ELtblH;
 				};
-			this.err.set('');//smaž error hlášení
 			
 			tblr.innerHTML='';
 			tblr.style.display='';
@@ -1225,11 +945,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			this.add_strankovani_text(tblr,sel,pg,cnt,it,max,false);
 			//filtrování
 			this.tblfin(ob);
-			//tabulka finišuje
-			if(OnTblFns!=undefined){try{OnTblFns(ELtbl);}catch(e){
-				chb += 'Error ontablefinish fn : '+e.message+'<br><br>';
-			}}
-			if(chb!=''){this.err.set('');}
+			if(chb!=''){this.err.add(chb);}
 			//updatni texty
 			this.setNadpis(nadp_text);
 			this.setSouhrn(suma_text);
@@ -1237,7 +953,14 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 
 			tblr.style.display=((/^\s*$/.test(tblr.innerHTML))?'none':'');
 			tblf.style.display=((/^\s*$/.test(tblf.innerHTML))?'none':'');
+		}else{
+			if(chb!=''){this.err.add(chb);}		
 		}
+		//tabulka finišuje
+		//toto je definováno i ve funkci this.gen, protože při empty data by nebylo voláno
+		if(OnTblFns!=undefined){try{OnTblFns(ELtbl,false);}catch(e){
+			this.err.add('Error ontablefinish fn : '+e.message);
+		}}
 	}
 	function add_menu_btn(tx,o){
 		// přidá menu button

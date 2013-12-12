@@ -4,6 +4,12 @@
 .ajaxtblbodydata{
 	border: 1px black solid;
 }
+.ajaxtblbodydata td a{
+	color: blue;
+}
+.ajaxtblbodydata td a:hover{
+	font-style: italic;
+}
 .ajaxtblbodyinner td,
 .ajaxtblheadinner td {
 	border: 1px #606060 dotted;

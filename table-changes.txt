@@ -1,0 +1,6 @@
+v 2.2.2
+	- FIX : oprava chybového hlášení v prùbìhu vytváøení tabulky - nezobrazilo se
+	- FIX : pøidána property ExtElerr
+	- FIX : oprava ontablefinish, byla volána jen pokud se generovala data, data nebyla prázdná a nenastala chyba pøi zaèátku generování tabulky. Nyní je volána když konèí generování tabulky i v pøípadì chyby a i když jsou data prázdná
+	- FIX : oprava ondataloaded  nebylo voláno když byly data empty, nyní už je voláno i když jsou data prázdná
+	- ADD : pøi volání funkcí ontablefinish a ondataloaded pøidáno boolean info o pøijatých prázdných dat
