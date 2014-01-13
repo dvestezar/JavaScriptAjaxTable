@@ -1,3 +1,7 @@
+v 2.2.3
+	- FIX : oprava doubleclick na TR - kompletní pøepsání, pøi chybì jde error do error div elementu
+	- FIX : oprava onselect a onclick -  -||-
+
 v 2.2.2
 	- FIX : oprava chybového hlášení v prùbìhu vytváøení tabulky - nezobrazilo se
 	- FIX : pøidána property ExtElerr

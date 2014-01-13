@@ -186,7 +186,10 @@ použití  tblxxx = new JBajaxtable.init(sqlname,idtbl,{order,fields,sqlparam,or
 						td.field je název fieldu (sloupce)			
 			onheadertdclick = fn volaná při kliknutí na buňku v hlavičce tabulky function(td) kde td je elemen buňky tabulky
 						-funkce může vrátit false pro zákázání provedení interního (zmenu)řazení, které je standartně provedeno
-			ondblclick	= fn volaná při dvojkliku na datové buňky - function() přístup k datům je přes this, this=objekt tr tzn this.val jsou data řádku tr.val
+			ondblclick	= fn volaná při dvojkliku na datové buňky - function() přístup k datům je přes this,
+							this=objekt tr, tzn:
+								this.val  = jsou data řádku stejně jako tr.val
+								this.toto = tento objekt
 			onadddataloaded = fn je volána jen při načtení dodatečných dat (script serveru je vrátí) function(add_data) kde add_data je objekt vrácených dat
 							tato fn je volána i když jsou hlavní data EMPTY
 			ondataloaded = fn(odkaz na element div pro tabulku, boolean jestly byla data empty - empty=true) je volána po načtení dat pro tabulku, těsně před jejím generování(tabulka je zrovna smazána, přístup k datům jako předchozí)
@@ -195,7 +198,9 @@ použití  tblxxx = new JBajaxtable.init(sqlname,idtbl,{order,fields,sqlparam,or
 			ontablefinish = fn(odkaz na element div pro tabulku, boolean jestly byla data empty - empty=true) je volána po vygenerování tabulky
 							fn(el)  potom ve funkci el.ajxtbl je odkaz na tento objekt
 							také je volána i když jsou data prázdná - ajax chyba empty
-			onselect	= fn volaná při kliknutí myší na řádek - function() ve funkci this.val je přístup k datům
+			onselect	=  fn volaná při kliknutí myší na řádek - function() ve funkci this.val je přístup k datům toto nahrazuje onclick na TR
+								this.val  = jsou data řádku stejně jako td.val
+								this.toto = tento objekt
 		
 jediné povinné údaje jsou sqlnane, a idtable
 přístup k objektu je zajištěn vytvořenou proměnnou v DIVu volaného při vytváření
@@ -252,6 +257,7 @@ funkce použitelné zvenku
 		- "fieldname" = je jméno fieldu, který má být skryt
 		
 	.getTableRef() vrátí referenci na htmlelement object tabulky
+  .getLastData() vrátí poslední načtená data
 	.SetPrintName(name) nastaví print nadpis
 	
 	.val() vrátí vybrané hodnoty z označených řádků jako pole řetězců podle voleb při vytváření viz výše - selectable	multiselect

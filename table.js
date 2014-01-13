@@ -1,6 +1,6 @@
 ﻿/*
-********************* JavaScript Ajax table ********************
-v 2.2.2
+$NOTE: ********************* JavaScript Ajax table ********************
+v 2.2.3
 by Dvestezar www.dvesstezar.cz
 využívá knihovny
   - jQuery (psáno s 1.8.3)
@@ -450,6 +450,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 		return true;
 	}
 	this.gen= function(response){
+		// $NOTE: prijem dat a volnani generovani tabulky
 		var ch;
 		if(response.status!=200){
 			try{ch=response.responseText;}catch(e){ch=e;};
@@ -486,6 +487,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 				this.err.set(lang.err_script+' : '+lang.err_ret_no_obj_format);
 				return;				
 			}
+			ELtbl.val=a;			
 			if(!/^ok$/gi.test(a.msg)){
 				//pokud není OK tak test na EMPTY jinak chyba
 				this.setSouhrn('');
@@ -661,6 +663,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 		td.tbl=ElTblObj;
 		td.toto=this;
 		
+		// $TODO: pridat onclickcolsort
 		var ad='disabled';
 		if(ord_enable)
 			if(o){
@@ -689,7 +692,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 		return tr;
 	}
 	this.gen_tbl=function(d){
-		//generování tabulky z dat
+		// $NOTE: generovani tabulky z dat
 		var a,b,tb,tr,tr2,td,key,tb2,trh,ob;
 		
 		var pg=d.pg; 	// kolik stran je celkem
@@ -775,8 +778,9 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 				
 				//this.err.add('Test err');//testovací chyba v průběhu
 				
+				// $FIX: OK Komletne opravit onclick - nevyuzivat jQuery a odchytit err do div err elementu
 				if(selectuj){
-					jQuery(tr).click(function(e){
+					tr.selectujFN=function(e){
 						// selectování řádků
 						//hl.kód
 						var el;
@@ -816,16 +820,48 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 						//pokud nastaven input element tak nastav
 						set_html_element();
 						tb.last_sel_tr_idx=this.rowIndex;
-					});
+					};
 				}
+				
+				// $FIX: OK kompletne opravit onselect -  nevyuzivat jQuery a odchytit err do div err elementu
 				if(OnSel!=undefined){try{					
-					jQuery(tr).click(OnSel);
+					tr.onclickRun=OnSel;
 				}catch(e){
 					chb += 'Error onTR fn : '+e.message+'<br><br>';
 				}}
+				
+				if((tr.selectujFN!=undefined)||(tr.onclickRun!=undefined)){
+					tr.onclick=function(event){
+						//zavolej selectování pokud zadáno
+						try{
+							if(this.selectujFN!=undefined){
+								this.selectujFN(event);
+							}
+						}catch(e){
+							this.toto.err.add('Error onclick - select fn : '+e.message+'<br><br>');					
+						}
+						// zavolej onclick pokud zadáno
+						try{
+							if(this.onclickRun!=undefined){
+								this.onclickRun(event);
+							}
+						}catch(e){
+							this.toto.err.add('Error onclick - click fn : '+e.message+'<br><br>');					
+						}
+					}
+				}
+				
+				
+				// $FIX: OK oprava ondblclick
 				if(ondblclick!=undefined){
-					try{jQuery(tr).dblclick(ondblclick);}catch(e){
-						chb += 'Error ondblclick fn : '+e.message+'<br><br>';
+					tr.runondblclick=ondblclick;
+					tr.ondblclick=function(){
+						try{
+							this.runondblclick(this);
+							// this.toto.err.add('tr dblclick test ok');
+						}catch(e){
+							this.toto.err.add('Error ondblclick fn : '+e.message+'<br><br>');
+						}
 					}
 				}
 				//before make table row
@@ -849,6 +885,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 						if(OnDTc!=undefined){try{OnDTc(td);}catch(e){
 							chb += 'Error onTD fn : '+e.message+'<br><br>';
 						}}
+						// $TODO přidat ontdclick
 					}
 				}
 				//after make table row
@@ -1282,7 +1319,10 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 	this.getTableRef=function(){
 		return ELtbl;
 	}
-	
+	// $TODO: 
+	this.getLastData=function(){
+		return ELtbl.val;
+	}
 	this.print = function(){
 		try{
 			var dp='PrintJBajaxTable_';
