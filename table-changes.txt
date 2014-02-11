@@ -1,23 +1,23 @@
-v 2.2.6
-	- FIX : vıška hlavní obálky pøi nastaveném property "bodyheight" nebyla nastavována a následující text byl pod tabulkou
-	- FIX : skrytí horní hlavièky tabulky, pokud je nastavno "bodyheight"
-	- FIX : select øádkù - click nahrazeno mousekeydown (nezobrasuje se vybranı text pokud se pouije shift)
+ï»¿v 2.2.6
+	- FIX : vÃ½Å¡ka hlavnÃ­ obÃ¡lky pÅ™i nastavenÃ©m property "bodyheight" nebyla nastavovÃ¡na a nÃ¡sledujÃ­cÃ­ text byl pod tabulkou
+	- FIX : skrytÃ­ hornÃ­ hlaviÄky tabulky, pokud je nastavno "bodyheight"
+	- FIX : select Å™Ã¡dkÅ¯ - click nahrazeno mousekeydown (nezobrasuje se vybranÃ½ text pokud se pouÅ¾ije shift)
 	- ADD : ontdrightclick a ontrrightclick pro menu atp.
 	
 v 2.2.5
 	- FIX : CZ lang obrazeno>>zobrazeno
-	- FIX : zobrazení èísla poètu zobrazenıch øádkù v hlavièce tabulky "zobrazeno undefined z xx"
+	- FIX : zobrazenÃ­ ÄÃ­sla poÄtu zobrazenÃ½ch Å™Ã¡dkÅ¯ v hlaviÄce tabulky "zobrazeno undefined z xx"
 
 v 2.2.4
-	- CHNG : min.limit øádkù v tabulce zmìnìn z 50 na 20
+	- CHNG : min.limit Å™Ã¡dkÅ¯ v tabulce zmÄ›nÄ›n z 50 na 20
 
 v 2.2.3
-	- FIX : oprava doubleclick na TR - kompletní pøepsání, pøi chybì jde error do error div elementu
+	- FIX : oprava doubleclick na TR - kompletnÃ­ pÅ™epsÃ¡nÃ­, pÅ™i chybÄ› jde error do error div elementu
 	- FIX : oprava onselect a onclick -  -||-
 
 v 2.2.2
-	- FIX : oprava chybového hlášení v prùbìhu vytváøení tabulky - nezobrazilo se
-	- FIX : pøidána property ExtElerr
-	- FIX : oprava ontablefinish, byla volána jen pokud se generovala data, data nebyla prázdná a nenastala chyba pøi zaèátku generování tabulky. Nyní je volána kdy konèí generování tabulky i v pøípadì chyby a i kdy jsou data prázdná
-	- FIX : oprava ondataloaded  nebylo voláno kdy byly data empty, nyní u je voláno i kdy jsou data prázdná
-	- ADD : pøi volání funkcí ontablefinish a ondataloaded pøidáno boolean info o pøijatıch prázdnıch dat
+	- FIX : oprava chybovÃ©ho hlÃ¡Å¡enÃ­ v prÅ¯bÄ›hu vytvÃ¡Å™enÃ­ tabulky - nezobrazilo se
+	- FIX : pÅ™idÃ¡na property ExtElerr
+	- FIX : oprava ontablefinish, byla volÃ¡na jen pokud se generovala data, data nebyla prÃ¡zdnÃ¡ a nenastala chyba pÅ™i zaÄÃ¡tku generovÃ¡nÃ­ tabulky. NynÃ­ je volÃ¡na kdyÅ¾ konÄÃ­ generovÃ¡nÃ­ tabulky i v pÅ™Ã­padÄ› chyby a i kdyÅ¾ jsou data prÃ¡zdnÃ¡
+	- FIX : oprava ondataloaded  nebylo volÃ¡no kdyÅ¾ byly data empty, nynÃ­ uÅ¾ je volÃ¡no i kdyÅ¾ jsou data prÃ¡zdnÃ¡
+	- ADD : pÅ™i volÃ¡nÃ­ funkcÃ­ ontablefinish a ondataloaded pÅ™idÃ¡no boolean info o pÅ™ijatÃ½ch prÃ¡zdnÃ½ch dat
