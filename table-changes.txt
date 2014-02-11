@@ -1,3 +1,16 @@
+v 2.2.6
+	- FIX : výška hlavní obálky pøi nastaveném property "bodyheight" nebyla nastavována a následující text byl pod tabulkou
+	- FIX : skrytí horní hlavièky tabulky, pokud je nastavno "bodyheight"
+	- FIX : select øádkù - click nahrazeno mousekeydown (nezobrasuje se vybraný text pokud se použije shift)
+	- ADD : ontdrightclick a ontrrightclick pro menu atp.
+	
+v 2.2.5
+	- FIX : CZ lang obrazeno>>zobrazeno
+	- FIX : zobrazení èísla poètu zobrazených øádkù v hlavièce tabulky "zobrazeno undefined z xx"
+
+v 2.2.4
+	- CHNG : min.limit øádkù v tabulce zmìnìn z 50 na 20
+
 v 2.2.3
 	- FIX : oprava doubleclick na TR - kompletní pøepsání, pøi chybì jde error do error div elementu
 	- FIX : oprava onselect a onclick -  -||-

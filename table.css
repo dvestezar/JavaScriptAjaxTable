@@ -52,6 +52,9 @@
 	font-weight: bold;
 }
 
+.ajaxtblbody{
+	background-color:white;
+}
 .ajaxtblbody td{
 	color:black;
 }

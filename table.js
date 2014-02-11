@@ -1,6 +1,6 @@
 ﻿/*
 $NOTE: ********************* JavaScript Ajax table ********************
-v 2.2.3
+v 2.2.6
 by Dvestezar www.dvesstezar.cz
 využívá knihovny
   - jQuery (psáno s 1.8.3)
@@ -12,7 +12,7 @@ var JBajaxtable_var = {
 	lang : {
 		raz : 'Řazeno podle',
 		str : 'Strana',
-		zob : 'obrazeno',
+		zob : 'zobrazeno',
 		z : 'z',
 		max : 'Max',
 		loading : 'Nahrávám ....',
@@ -127,6 +127,8 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 	var onemptydata;
 	var ondblclick;
 	var sqlparamfn;
+	var ontdrightclick;
+	var ontrrightclick;
 	
 	var offlinedata; // data která budou použita pokud chceme tabulku jako offline
 
@@ -314,6 +316,10 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 				ondblclick=p.ondblclick;
 			if(p.offlinedata!=undefined)
 				offlinedata=p.offlinedata;
+			if(p.ontdrightclick!=undefined)
+				ontdrightclick=p.ontdrightclick;
+			if(p.ontrrightclick!=undefined)
+				ontrrightclick=p.ontrrightclick;				
 		}else{
 			p={};
 			p.firstread=true;
@@ -420,7 +426,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 		this.err.set(lang.loading);
 		var mr=flds_vis['input_max_rows'];
 		if(JB.is.und(mr)){
-			mr=50;
+			mr=20;
 		}else{
 			mr=mr.vis;
 		}
@@ -729,12 +735,9 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 				flds_vis=a;
 			}else{
 				if(JB.is.und(flds_vis['input_max_rows'])) flds_vis['input_max_rows'] = {};
-				flds_vis['input_max_rows'].vis=50;
+				flds_vis['input_max_rows'].vis=20;
 			}
 		}
-		
-		var cnt=d.length; //počet zobrazených údajů
-		
 		
 		//toto je definováno i ve funkci this.gen, protože při empty data by nebylo voláno
 		if(OnDtLd!=undefined){try{OnDtLd(ELtbl,false);}catch(e){
@@ -744,6 +747,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 		
 		d=d.data;
 		last_data=d;
+		var cnt=d.length; //počet zobrazených údajů
 		if(d.length>0){
 			//vytvoř tabulku
 			dv=JB.x.cel('div',{ob:tblb,style:{width:'100%'}});
@@ -831,26 +835,42 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 				}}
 				
 				if((tr.selectujFN!=undefined)||(tr.onclickRun!=undefined)){
-					tr.onclick=function(event){
-						//zavolej selectování pokud zadáno
-						try{
-							if(this.selectujFN!=undefined){
-								this.selectujFN(event);
+					jQuery(tr).mousedown(
+						//tr.onclick=
+						function(event){
+							if(event.which==1){ //jen pokud leftclick
+								//zavolej selectování pokud zadáno
+								try{
+									if(this.selectujFN!=undefined){
+										this.selectujFN(event);
+									}
+								}catch(e){
+									this.toto.err.add('Error onclick - select fn : '+e.message+'<br><br>');					
+								}
+								// zavolej onclick pokud zadáno
+								try{
+									if(this.onclickRun!=undefined){
+										this.onclickRun(event);
+									}
+								}catch(e){
+									this.toto.err.add('Error onclick - click fn : '+e.message+'<br><br>');					
+								}
 							}
-						}catch(e){
-							this.toto.err.add('Error onclick - select fn : '+e.message+'<br><br>');					
+							event.stopImmediatePropagation();
 						}
-						// zavolej onclick pokud zadáno
-						try{
-							if(this.onclickRun!=undefined){
-								this.onclickRun(event);
-							}
-						}catch(e){
-							this.toto.err.add('Error onclick - click fn : '+e.message+'<br><br>');					
-						}
-					}
+					)
 				}
-				
+				if(ontrrightclick!=undefined){
+					tr.ontrrightclick=ontrrightclick;
+					jQuery(tr).click(function(event){
+						try{
+							if(event.which==2) //right click
+								this.ontrrightclick(event,this);
+						}catch(e){
+							this.toto.err.add('Error ontrrightclick - click fn : '+e.message+'<br><br>');
+						}
+					});
+				}
 				
 				// $FIX: OK oprava ondblclick
 				if(ondblclick!=undefined){
@@ -886,6 +906,17 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 							chb += 'Error onTD fn : '+e.message+'<br><br>';
 						}}
 						// $TODO přidat ontdclick
+						if(ontdrightclick!=undefined){
+							td.ontdrightclick=ontdrightclick;
+							jQuery(td).click(function(event){
+								try{
+									if(event.which==2) //right click
+										this.ontdrightclick(event,this);
+								}catch(e){
+									this.toto.err.add('Error ontdrightclick - click fn : '+e.message+'<br><br>');
+								}
+							});
+						}						
 					}
 				}
 				//after make table row
@@ -922,6 +953,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 					//rozměry
 					tr.cells[a].style.width = jQuery(tr2.cells[a]).css('width');		
 				}
+				//jQuery(tr2).hide();
 			}; // jinak pokud není, je výška neměnná a horní head bezpředmětná
 
 			//pokud stránkování, tak nastav foot
@@ -951,7 +983,6 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 				autorefrtx=JB.x.tx('',{ob:a,csN:'ajaxtblheadrefrlink ajaxheaderbuttoninnerlink'});
 			}
 			
-			//todo menu
 			//tlačítko menu
 			a=JB.x.cel('div',{ob:ob,csN:'ajaxtblheadmenu ajaxheaderbuttonlink',ad:{toto:this,
 				onclick:function(){
@@ -990,6 +1021,11 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 
 			tblr.style.display=((/^\s*$/.test(tblr.innerHTML))?'none':'');
 			tblf.style.display=((/^\s*$/.test(tblf.innerHTML))?'none':'');
+			
+			if(mxh!=undefined){//pokud je zadána max výška tak oprav CSS hlavní obálky
+				a=jQuery(mtbl).outerHeight();
+				jQuery(ELtbl).innerHeight(a);
+			}
 		}else{
 			if(chb!=''){this.err.add(chb);}		
 		}
@@ -1251,14 +1287,14 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			
 			var mr=flds_vis['input_max_rows'];
 			if(JB.is.und(mr)){
-				mr=50;
+				mr=20;
 			}else{
 				mr=mr.vis;
 			}
 			
 			a=JB.x.cel('div',{ob:dv_fl,csN:'ajaxheaderbuttonlink ajaxtbl_fltr_other'});
 			JB.x.cel('span',{ob:a,tx:'Max.řádků:'})
-			JB.x.cel('input',{ob:a,tp:'text',nm:'maxpocet',tit:'ENTER potvrdí, číslo 50-1000',val:String(mr),
+			JB.x.cel('input',{ob:a,tp:'text',nm:'maxpocet',tit:'ENTER potvrdí, číslo 20-1000',val:String(mr),
 				style:{width:'30px'},
 				ad:{toto:this,
 					onkeyup:function(event){
@@ -1276,8 +1312,8 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 								return;
 							}
 							k=jQuery(this).val()*1;
-							if((k<50)|(k>1000)){
-								alert('Číslo musí být větší jak 49 a menší jak 1001');
+							if((k<20)|(k>1000)){
+								alert('Číslo musí být větší jak 19 a menší jak 1001');
 								return;
 							}
 							this.toto.SetCollVisible('input_max_rows',k);

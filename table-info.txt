@@ -146,7 +146,8 @@ použití  tblxxx = new JBajaxtable.init(sqlname,idtbl,{order,fields,sqlparam,or
 			
 			elementerror= html element DIV který bude obsahovat chybové zprávy
 						- pokud není zadán, bude vytvořen pod FOOT tabulky řádek ve kterém se zprávy budou zobrazovat
-			bodyheight	= pokud je nastaveno, tak se omezí velikost těla tabulky na určenou výšku (zadává se jako řetězec i s jednotkami jako px atp.)
+			bodyheight	= (zápis css stylem "height:200px")
+						pokud je nastaveno, tak se omezí velikost těla tabulky na určenou výšku
 						tzn.hlavička bude stálá a tělo bude scrollovatelné
 			trsel		= bude zvýrazněno CSStřídou trCSS pokud true - default je true / nemusí být zadáno
 			trCSS		= definování CSS třídy pro zvýraznění, pokud je trsel true - default CSS je sel_lr
@@ -183,7 +184,8 @@ použití  tblxxx = new JBajaxtable.init(sqlname,idtbl,{order,fields,sqlparam,or
 						kde
 						td je element buňky tabulky
 						td.val je hodnota kterou obsahuje buňka
-						td.field je název fieldu (sloupce)			
+						td.field je název fieldu (sloupce)
+						td.tr = tr.val tzn. td.tr.filedname vrátí hodnotu fieldu z právě generovaného řádku nebo při nestandartním názvu fieldu td.tr['filed.name']
 			onheadertdclick = fn volaná při kliknutí na buňku v hlavičce tabulky function(td) kde td je elemen buňky tabulky
 						-funkce může vrátit false pro zákázání provedení interního (zmenu)řazení, které je standartně provedeno
 			ondblclick	= fn volaná při dvojkliku na datové buňky - function() přístup k datům je přes this,
@@ -201,13 +203,14 @@ použití  tblxxx = new JBajaxtable.init(sqlname,idtbl,{order,fields,sqlparam,or
 			onselect	=  fn volaná při kliknutí myší na řádek - function() ve funkci this.val je přístup k datům toto nahrazuje onclick na TR
 								this.val  = jsou data řádku stejně jako td.val
 								this.toto = tento objekt
+			ontdrightclick = fn(event,td) tato funkce je volána, pokud je kliknuto pravým tlačítkem myši na buňku dat
+			ontrrightclick = fn(event,tr) tato funkce je volána, pokud je kliknuto pravým tlačítkem myši na řádek dat
 		
 jediné povinné údaje jsou sqlnane, a idtable
-přístup k objektu je zajištěn vytvořenou proměnnou v DIVu volaného při vytváření
+přístup k objektu je možno vytvořenou proměnnou v DIVu volaného při vytváření
 	document.getElementById('xxx').ajxtbl
 		kde xxx je ID DIVu ve kterém je tabulka vytvářena
-
-přístup do objektu je také možný přes proměnnou která je vrácena funkcí při jeho vytváření, pokud je var používána globálně
+přístup do objektu je samozřejmě také možný přes proměnnou která je vrácena funkcí při vytváření tabulky, pokud je var používána globálně
 
 proměnné využitelné pro případné funkce ontrcreate,ontdcreate
 	na každém td bude vytvořeno property
@@ -219,6 +222,7 @@ proměnné využitelné pro případné funkce ontrcreate,ontdcreate
 		.tr_el = odkaz na element TR který obsahuje tuto buňku
 	na každém tr těla tabulky bude vytvořen property
 		.val = objekt z kterého byl generován řádek tzn.: {field1:val1,field2:val2 ....}
+			přístup k hodnotám je .val['fieldx']
 		.toto = tento objekt
 		.tbl = je element tabulky
 	document.getElementById('xxx').ajxtbl.val
