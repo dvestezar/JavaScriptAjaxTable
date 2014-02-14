@@ -1,6 +1,6 @@
 ﻿/*
 $NOTE: ********************* JavaScript Ajax table ********************
-v 2.2.6
+v 2.2.7
 by Dvestezar www.dvesstezar.cz
 využívá knihovny
   - jQuery (psáno s 1.8.3)
@@ -54,7 +54,9 @@ var JBajaxtable_var = {
 		mysql_err_chk_qr : 'Chyba pordpůrného dotazu SQL',
 		mysql_err_main_qr : 'Chyba hlavního dotazu SQL',
 		mysql_err_add_qr : 'Chyba dotazů z dotazu dodatečných dat',
-		end : 'Konec'
+		end : 'Konec',
+		reachedminpage:'Dosáhl jsi první strany.',
+		reachedmaxpage:'Dosáhl jsi poslední strany.'
 	}
 };
 
@@ -102,7 +104,8 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 	var mxh;//maxheadtabulky
 	var flds = {};//object fields fiz popis vstup fields
 	var flds_vis = {};//objekt pro uložení viditelnosti sloupců
-	var lastpg = 0;
+	var lastpg = 0; //zobrazená stránka - načteno při posledním generování tabulky
+	var maxpages = 0; //kolik stran je k dispozici - načteno při posledním generování tabulky
 	var trCSS;
 	var trsel;
 	var addquery = '';
@@ -127,8 +130,8 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 	var onemptydata;
 	var ondblclick;
 	var sqlparamfn;
-	var ontdrightclick;
-	var ontrrightclick;
+	var ontdcontext;
+	var ontrcontext;
 	
 	var offlinedata; // data která budou použita pokud chceme tabulku jako offline
 
@@ -316,10 +319,10 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 				ondblclick=p.ondblclick;
 			if(p.offlinedata!=undefined)
 				offlinedata=p.offlinedata;
-			if(p.ontdrightclick!=undefined)
-				ontdrightclick=p.ontdrightclick;
-			if(p.ontrrightclick!=undefined)
-				ontrrightclick=p.ontrrightclick;				
+			if(p.ontdcontext!=undefined)
+				ontdcontext=p.ontdcontext;
+			if(p.ontrcontext!=undefined)
+				ontrcontext=p.ontrcontext;				
 		}else{
 			p={};
 			p.firstread=true;
@@ -702,6 +705,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 		var a,b,tb,tr,tr2,td,key,tb2,trh,ob;
 		
 		var pg=d.pg; 	// kolik stran je celkem
+		maxpages=d.pg; //glob var kolik stran je k dispozici
 		var it=d.cnt; 	//celkový počet nalezených údajů
 		var max=d.maxrow; //jaký max zobrazených řádků počet je definován
 		var sel=d.sel;	// která strana je aktivní
@@ -860,14 +864,16 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 						}
 					)
 				}
-				if(ontrrightclick!=undefined){
-					tr.ontrrightclick=ontrrightclick;
-					jQuery(tr).click(function(event){
+				if(ontrcontext!=undefined){
+					tr.ontrcontext=ontrcontext;
+					jQuery(tr).bind("contextmenu",function(event){
 						try{
-							if(event.which==2) //right click
-								this.ontrrightclick(event,this);
+							if(event.which==3){ //right click
+								return this.ontrcontext(event,this);
+								return false;
+							}
 						}catch(e){
-							this.toto.err.add('Error ontrrightclick - click fn : '+e.message+'<br><br>');
+							this.toto.err.add('Error ontrcontext - click fn : '+e.message+'<br><br>');
 						}
 					});
 				}
@@ -906,14 +912,16 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 							chb += 'Error onTD fn : '+e.message+'<br><br>';
 						}}
 						// $TODO přidat ontdclick
-						if(ontdrightclick!=undefined){
-							td.ontdrightclick=ontdrightclick;
-							jQuery(td).click(function(event){
+						if(ontdcontext!=undefined){
+							td.ontdcontext=ontdcontext;
+							jQuery(td).bind('contextmenu',function(event){
 								try{
-									if(event.which==2) //right click
-										this.ontdrightclick(event,this);
+									if(event.which==3){ //right click
+										return this.ontdcontext(event,this);
+										return false;
+									}
 								}catch(e){
-									this.toto.err.add('Error ontdrightclick - click fn : '+e.message+'<br><br>');
+									this.toto.err.add('Error ontdcontext - click fn : '+e.message+'<br><br>');
 								}
 							});
 						}						
@@ -1074,11 +1082,19 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 		JB.x.a ('_','','>>>',lang.nasled_pg,{ob:bunka,ad:{toto:this,onclick:this.next_pg}});		
 	}
 	this.next_pg = function(){
+		if(lastpg>=maxpages){
+			alert(lang.reachedmaxpage);
+			return false;
+		}
 		lastpg++;
 		this.toto.refresh();
 		return false;
 	}
 	this.prev_pg = function(){
+		if(lastpg<1){
+			alert(lang.reachedminpage);
+			return false;
+		}
 		lastpg--;
 		this.toto.refresh();
 		return false;

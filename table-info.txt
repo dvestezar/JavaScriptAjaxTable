@@ -203,8 +203,8 @@ použití  tblxxx = new JBajaxtable.init(sqlname,idtbl,{order,fields,sqlparam,or
 			onselect	=  fn volaná při kliknutí myší na řádek - function() ve funkci this.val je přístup k datům toto nahrazuje onclick na TR
 								this.val  = jsou data řádku stejně jako td.val
 								this.toto = tento objekt
-			ontdrightclick = fn(event,td) tato funkce je volána, pokud je kliknuto pravým tlačítkem myši na buňku dat
-			ontrrightclick = fn(event,tr) tato funkce je volána, pokud je kliknuto pravým tlačítkem myši na řádek dat
+			ontdcontext = fn(event,td) tato funkce je volána, pokud je kliknuto pravým tlačítkem myši na buňku dat
+			ontrcontext = fn(event,tr) tato funkce je volána, pokud je kliknuto pravým tlačítkem myši na řádek dat
 		
 jediné povinné údaje jsou sqlnane, a idtable
 přístup k objektu je možno vytvořenou proměnnou v DIVu volaného při vytváření

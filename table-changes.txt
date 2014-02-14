@@ -1,8 +1,11 @@
-﻿v 2.2.6
+﻿v 2.2.7
+	- FIX : oprava odkazů na změnu stránky, ochrana proti přetečení a podtečení stránky
+	
+v 2.2.6
 	- FIX : výška hlavní obálky při nastaveném property "bodyheight" nebyla nastavována a následující text byl pod tabulkou
 	- FIX : skrytí horní hlavičky tabulky, pokud je nastavno "bodyheight"
 	- FIX : select řádků - click nahrazeno mousekeydown (nezobrasuje se vybraný text pokud se použije shift)
-	- ADD : ontdrightclick a ontrrightclick pro menu atp.
+	- ADD : ontdcontext a ontrcontext pro menu atp.
 	
 v 2.2.5
 	- FIX : CZ lang obrazeno>>zobrazeno
