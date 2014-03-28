@@ -1,4 +1,7 @@
-﻿v 2.2.7
+﻿v 2.3.0
+	- REWR : přepsáno použití idtbl při inicializaci, může být použit jako text id elementu, nebo přímo element, který ale musí mít id nastaveno
+
+v 2.2.7
 	- FIX : oprava odkazů na změnu stránky, ochrana proti přetečení a podtečení stránky
 	
 v 2.2.6

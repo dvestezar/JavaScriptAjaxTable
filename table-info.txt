@@ -10,7 +10,11 @@ použití  tblxxx = new JBajaxtable.init(sqlname,idtbl,{order,fields,sqlparam,or
 						bodyheight,trsel,trCSS,addquery,ontrcreate,ontdcreate,onheadertdclick,onadddataloaded,onselect})
 
 	kde
-		idtbl		= ID DIVu pro tabulku - text id elementu v html (div musí existovat třeba jen <div id="xxx"></div>)
+		idtbl		= může být 1)string nebo 2)HTML element objekt
+					1) pokud je zadáno jako text, tak se bere jako ID elementu a pokusí se jej najít pomocí funkce document.getlementByID
+					2) pokud je na vstupu objekt tak se bere přímo jako HTML element objekt DIVu a !!! musí mít nastaven atribut ID !!!, toto id je použito při ukládání 
+						informací o uživatelských nastavení pro sloupce tabulky
+			
 		sqlname		= jméno sql řetězce z XML
 		objekt nepovinných parametrů
 			title		= nastaví nadpis tabulky, na následující změny lze použít funkci .setNadpis, pokud není zadáno, je použito '' a TR s nadpisem je skryt

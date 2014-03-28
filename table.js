@@ -1,6 +1,6 @@
 ﻿/*
 $NOTE: ********************* JavaScript Ajax table ********************
-v 2.2.7
+v 2.3.0
 by Dvestezar www.dvesstezar.cz
 využívá knihovny
   - jQuery (psáno s 1.8.3)
@@ -74,7 +74,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 	var OnDtLd; // on data loaded and table clear, before table create
 	var OnTblFns; // po vytvoření tabulky
 	var OnBefTrCr; // on before tr create	
-	var IDtbl; // ID div elementu, kde bude přiřazen tento objekt - definováno na vstupu init
+	var IDtbl; // jméno tabluky v MySQL tabulce, ke ketré se uloží colsinfo
 	var ELtbl; //element DIV pro tabulku
 	var ELtblH; //vypočtená výška hlavního DIV pokud je nastavena výška tabulky pro scrolling
 	var ElTblObj; //obsahuje odkaz na element vytvořené tabulky - naplní se při vytváření tabulky
@@ -180,15 +180,31 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 	}
 	
 	this.init = function (sqlname,idtbl,p){
+		var a;
 		lang=JBajaxtable_var.lang;
 		sqlname=String(sqlname);
 		if(!offline_data_exists(p))
 			if(sqlname.length<1)return;
-		var a=document.getElementById(idtbl);
-		if(a==undefined)return;
+		if(typeof idtbl=='string'){
+			a=jQuery('#'+idtbl);
+			IDtbl=idtbl;
+		}else{
+			a=jQuery(idtbl);
+			IDtbl=String(a[0].id+'').trim();
+			if(IDtbl==''){
+				console.log('!! JB Ajax Table main error : need some idsqltable');
+				alert('JB Ajax Table fatal Error(see console) : need some idsqltable');
+				return;			
+			}
+		}
+		if(a.length!=1){
+			console.log('!! JB Ajax Table main error : can\'t find main cover DIV id:' + idtbl);
+			alert('JB Ajax Table fatal Error(see console) : main DIV not found id: '+idtbl);
+			return;
+		}
+		a=a[0];
 		if(String(a.tagName).toLowerCase()!='div')return;
 		a.className += ' ajaxdivmainpouzdro';
-		IDtbl=idtbl;
 		gen_def_styles();
 		ELtbl=a;
 		ELtbl.ajxtbl=this; //zpětní kompatibilita následujícího
@@ -259,6 +275,8 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 				b.className='ajaxtblerr';
 				ELerr=b.insertCell(-1);//error
 			}
+			ELerr.toto=this;
+			
 			if(p.fields!=undefined)flds=p.fields;
 			if(p.order_ren!=undefined)order_ren=p.order_ren;
 			if(p.bodyheight!=undefined)mxh=p.bodyheight;
@@ -507,7 +525,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 					//pokud obsahuje "empty" tak byl vrácen prázdný odkaz
 					a=lang.empty;
 					if(offlinedata==undefined){
-						a+='   <a href="" onclick="try{document.getElementById(\''+IDtbl+'\').ajxtbl.refresh();}catch(e){alert(e)};return false;">' + lang.tblrefr + '</a>';
+						a+='   <a href="" onclick="try{this.parentNode.toto.refresh();}catch(e){alert(e)};return false;">' + lang.tblrefr + '</a>';
 					}
 					
 					tblr.style.display='none';
@@ -623,7 +641,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 				a=a % 60;
 				autorefrtx.innerHTML='('+(min>0?min+'m ':'')+a+'s)';
 			}
-			window.setTimeout("document.getElementById('"+IDtbl+"').ajxtbl.testrefreshtime('"+IDtbl+"')",1000);
+			window.setTimeout(this.testrefreshtime.bind(this),1000);
 		}catch(e){
 			autorefrtimer=-1;
 		}
@@ -1005,7 +1023,8 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			}});
 			JB.x.tx(lang.menubtn_tx,{ob:a,pop:lang.menubtn_alt,csN:'ajaxtblheadprintlink ajaxheaderbuttoninnerlink'});
 			//DIV obsahující tlačítka menu
-			menu_div=JB.x.cel('div',{ob:ob,id:IDtbl+'_ajax_tbl_menu_div',csN:'ajaxtblheadmenudiv'});
+			//menu_div=JB.x.cel('div',{ob:ob,id:ID tbl+'_ajax_tbl_menu_div',csN:'ajaxtblheadmenudiv'});
+			menu_div=JB.x.cel('div',{ob:ob,csN:'ajaxtblheadmenudiv'});
 	
 			// tlačítko tisk
 			if(shpr)add_menu_btn(lang.print,{pop:lang.print_alt,onclick:function(){ELtbl.toto.print()}});
@@ -1056,7 +1075,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 				try{
 					this.onclickfnin(e);
 				}catch(e){alert(e)}
-				jQuery('#'+IDtbl+'_ajax_tbl_menu_div').hide(300);
+				jQuery(menu_div).hide(300);
 			};
 		var a=JB.x.cel('div',x);
 		x={ob:a,csN:'ajaxtblheadmenulink ajaxheaderbuttoninnerlink'};
@@ -1257,7 +1276,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 		if(!shfltr) return;
 		var b;
 		//vytvoří filtr zobrazení sloupců pro tisk
-		var nmel= IDtbl+'ajaxtbl_filtdiv_';
+		//var nmel= ID tbl +'ajaxtbl_filtdiv_';
 		var fl=el;
 		if(fl==undefined)return;
 		
@@ -1275,7 +1294,8 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 				}
 			}});
 			//fl = DIV obálka
-			dv_fl=JB.x.cel('div',{ob:fl,id:nmel+'_fltrs',csN:'ajaxtbl_fltr_body',style:{position:'absolute'}})
+			//dv_fl=JB.x.cel('div',{ob:fl,id:nmel+'_fltrs',csN:'ajaxtbl_fltr_body',style:{position:'absolute'}})
+			dv_fl=JB.x.cel('div',{ob:fl,csN:'ajaxtbl_fltr_body',style:{position:'absolute'}})
 			//nech zobrazeno, pokud bylo voláno click na checkboxu
 			if(!fsh)dv_fl.style.display='none';
 			a.dvfltrs=dv_fl;
