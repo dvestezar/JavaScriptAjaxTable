@@ -1,6 +1,6 @@
 ﻿/*
 $NOTE: ********************* JavaScript Ajax table ********************
-v 2.3.0
+v 2.3.5
 by Dvestezar www.dvesstezar.cz
 využívá knihovny
   - jQuery (psáno s 1.8.3)
@@ -8,6 +8,8 @@ využívá knihovny
 
 následující je globální language proměnná
 */
+var LocationOfJSPrintTableScriptPath='http://www.dvestezar.cz/!moje_js/table_tisk.css';
+
 var JBajaxtable_var = {
 	lang : {
 		raz : 'Řazeno podle',
@@ -16,6 +18,7 @@ var JBajaxtable_var = {
 		z : 'z',
 		max : 'Max',
 		loading : 'Nahrávám ....',
+		loading_alert : 'Již nahrávám data !',
 		err_serv : 'Chyba - status serveru',
 		err_script : 'Chyba vrácená scriptem serveru',
 		err_js : 'Chyba JS',
@@ -98,6 +101,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 	var tblf; //foot tabulky
 	var suma; //sumář tabulky
 	var nadp_text = '';
+	var nadp_loading = '';
 	var suma_text = '';
 	var popis_text = '';
 	var last_data; //poslední nahraná data
@@ -132,6 +136,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 	var sqlparamfn;
 	var ontdcontext;
 	var ontrcontext;
+	var refreshing=false;
 	
 	var offlinedata; // data která budou použita pokud chceme tabulku jako offline
 
@@ -411,7 +416,17 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 		}
 		return x;
 	}
-	this.refresh = function(){
+	this.loading = function(){
+		return refreshing;
+	}
+	this.refresh = function(msg){
+		if((msg!=true)&&(msg!=false))
+			msg=false;
+		if(refreshing){
+			if(msg==true)
+				alert(lang.loading_alert);
+			return;
+		}
 		var b,el,d,dd;
 
 		//sqlp je již hotový řetězec JSON na poslání - není potřeba jej nijak měnit
@@ -432,13 +447,9 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 				return false;
 			sqlp=JSON.stringify(b).convToUniEsc();
 		}
-
-		d=suma_text;
-		dd=popis_text;
-		this.clear();
-		this.setNadpis(nadp_text);
-		this.setSouhrn(d);
-		this.setPopis(dd);
+		
+		nadp_loading=nadp.innerHTML;
+		this.setNadpis(nadp_text+' - '+lang.loading);
 		
 		var b=add_query_get;
 		if(addquery_eve)b=true;
@@ -452,6 +463,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			mr=mr.vis;
 		}
 		if(offlinedata==undefined){
+			refreshing=true;
 			ajx = jQuery.ajax({
 				url:fscriptfilename,
 				type:"post",
@@ -465,19 +477,29 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 					max_row:mr  			//max záznamů na řádek
 				},
 				dataType:'text',//bez procesingu
-				success:function(response,status,jqXHR){
-					ELtbl.ajxtbl.gen(jqXHR);
-				}
+				success:(function(response,status,jqXHR){
+					this.gen(jqXHR);
+				}).bind(this),
+				complete:(function(){
+					refreshing=false;
+				}).bind(this)
 			});
 		}else{
 			r={};
 			r.status=200;
-			ELtbl.ajxtbl.gen(r);
+			this.gen(r);
 		}
 		return true;
 	}
 	this.gen= function(response){
 		// $NOTE: prijem dat a volnani generovani tabulky
+		d=suma_text;
+		dd=popis_text;
+		this.clear();
+		this.setNadpis(nadp_loading);
+		this.setSouhrn(d);
+		this.setPopis(dd);
+
 		var ch;
 		if(response.status!=200){
 			try{ch=response.responseText;}catch(e){ch=e;};
@@ -1027,14 +1049,14 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			menu_div=JB.x.cel('div',{ob:ob,csN:'ajaxtblheadmenudiv'});
 	
 			// tlačítko tisk
-			if(shpr)add_menu_btn(lang.print,{pop:lang.print_alt,onclick:function(){ELtbl.toto.print()}});
+			if(shpr)add_menu_btn(lang.print,{pop:lang.print_alt,onclick:(function(){this.print()}).bind(this)});
 			if(selectuj){
 				//sellAll
-				add_menu_btn(lang.sellall,{pop:lang.sellall_alt,onclick:function(){ELtbl.toto.selAll()}});
+				add_menu_btn(lang.sellall,{pop:lang.sellall_alt,onclick:(function(){this.selAll()}).bind(this)});
 				//deselAll
-				add_menu_btn(lang.desellall,{pop:lang.desellall_alt,onclick:function(){ELtbl.toto.selClear()}});
+				add_menu_btn(lang.desellall,{pop:lang.desellall_alt,onclick:(function(){this.selClear()}).bind(this)});
 				//invertSel
-				add_menu_btn(lang.selinv,{pop:lang.selinv_alt,onclick:function(){ELtbl.toto.selInv()}});
+				add_menu_btn(lang.selinv,{pop:lang.selinv_alt,onclick:(function(){this.selInv()}).bind(this)});
 			}
 			//pokud stránkování, tak přidej z foot stránkování
 			this.add_strankovani_text(tblr,sel,pg,cnt,it,max,false);
@@ -1096,9 +1118,9 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			+' ('+lang.max+':'+max+')'
 			+'&nbsp;&nbsp;&nbsp;&nbsp;'
 		,{ob:bunka});
-		JB.x.a ('_','','<<<',lang.predch_pg,{ob:bunka,ad:{toto:this,onclick:this.prev_pg}});
+		JB.x.a ('_','','<<<',lang.predch_pg,{ob:bunka,ad:{onclick:(this.prev_pg).bind(this)}});
 		JB.x.tx('&nbsp;&nbsp;&nbsp;&nbsp;',{ob:bunka})
-		JB.x.a ('_','','>>>',lang.nasled_pg,{ob:bunka,ad:{toto:this,onclick:this.next_pg}});		
+		JB.x.a ('_','','>>>',lang.nasled_pg,{ob:bunka,ad:{onclick:(this.next_pg).bind(this)}});		
 	}
 	this.next_pg = function(){
 		if(lastpg>=maxpages){
@@ -1106,7 +1128,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			return false;
 		}
 		lastpg++;
-		this.toto.refresh();
+		this.refresh();
 		return false;
 	}
 	this.prev_pg = function(){
@@ -1115,7 +1137,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			return false;
 		}
 		lastpg--;
-		this.toto.refresh();
+		this.refresh();
 		return false;
 	}
 	
@@ -1171,17 +1193,14 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			
 			b=JB.x.cel('div',{ob:n,csN:'ajaxtblheadorder ajaxheaderbuttonlink'});
 			JB.x.cel('a',{ob:b,tit:lang.ordby+ord[a][0],tx:p,csN:'ajaxtblheadorder ajaxheaderbuttoninnerlink'});
-			b.chf=ord[a][0];
-			b.totonm=ELtbl.id;
-			b.onclick=function(){
+			b.onclick=(function(x){
 				try{
-					var el=document.getElementById(this.totonm).ajxtbl;
-					el.changefield(this.chf);
+					this.changefield(x);
 				}catch(e){
 					alert(e);
 				}
 				return false;
-			}
+			}).bind(this,ord[a][0])
 		}
 		return lang.raz+' : ' + o;
 	}
@@ -1401,7 +1420,6 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			var a,b;
 			var wn=window.open("","Tisk");
 			var ndoc=wn.document;
-			var full = location.protocol+'//'+location.hostname+(location.port ? ':'+location.port: '');
 			ndoc.body.innerHTML='';
 			
 			//add css
@@ -1410,7 +1428,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			css.setAttribute("type", "text/css")
 
 
-			css.setAttribute("href", full+'/css/tisk_ajax_tbl.css')
+			css.setAttribute("href", LocationOfJSPrintTableScriptPath)
 			ndoc.getElementsByTagName("head")[0].appendChild(css)
 			
 			var md=JB.x.cel('div',{doc:ndoc,ob:ndoc,csN:dp+'cover'});

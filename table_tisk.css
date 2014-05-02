@@ -1,0 +1,55 @@
+body td{
+	font-size: 12px;
+	cursor: default;
+}
+
+.PrintJBajaxTable_cover{
+	text-align: center;
+	width: 180mm;
+	margin:auto;
+}
+
+.PrintJBajaxTable_napdis{
+	font-weight: bold;
+	font-size: 15px;
+	text-decoration: underline;
+}
+
+.PrintJBajaxTable_cover table {
+	border-collapse: collapse;
+	border-spacing: 0px;
+}
+
+.PrintJBajaxTable_cover .ajaxtblbody>td td {
+	border: 1px black solid;
+	padding-left: 2px;
+	padding-right: 2px;
+}
+
+a:link, a:hover, a:active, a:visited {
+	text-decoration: none;
+	color: black;
+}
+.ajaxtblheadinner{
+	font-weight: bold;
+}
+
+.ajaxtblbodydata{
+	border:2px solid black;
+}
+.PrintJBajaxTable_cover .ajaxtblbody>td .ajaxtblheadinner td{
+	border:2px solid black;
+}
+.ajaxtblheadordermain,.ajaxtblheadotherbuttonmain,
+.ajaxtblheadordermain div,.ajaxtblheadotherbuttonmain div{
+	display: inline-block;
+}
+.ajaxtblheadordermain{
+	float: left;
+}
+.ajaxtblheadotherbuttonmain{
+	float: right;
+}
+.ajaxtblheadotherbuttonmain,.ajaxtblnadpis{
+		display: none;
+}

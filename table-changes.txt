@@ -1,4 +1,10 @@
-﻿v 2.3.0
+﻿v 2.3.5
+	- FIX : oprava mazání tabulky pro další generování tabulky při refresh, volání přesunuto až po načtení dat - stabilní zobrazení tabulky bez problíkávání
+	- FIX : nelze provést refresh v průběhu refresh
+	- ADD : funkce 'loading' která vrací true/flase pokud se zrovna nahrávají data - info o tom že nelze volat refresh
+	- CHNG: defaultně nastavená cesta pro CSS pro tisk tabulky definována v globální proměnné LocationOfJSPrintTableScriptPath
+
+v 2.3.0
 	- REWR : přepsáno použití idtbl při inicializaci, může být použit jako text id elementu, nebo přímo element, který ale musí mít id nastaveno
 
 v 2.2.7

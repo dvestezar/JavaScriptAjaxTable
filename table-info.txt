@@ -250,13 +250,18 @@ funkce použitelné zvenku
 			.set = přepíše  -||-
 	popis a souhrn se maží s update nebo clear tabulky
 	
-	.refresh()
+	.refresh(msg)
+		msg(boolean default=false) pokud true tak se při pokusu volání refresh v průběhu načítání dat zobrazí hlášní, že nelze provést
+		refresh nelze provést znovu pokud se zrovna reflreshuje
+	
 		- document.getElementById('xxx').ajxtbl.refresh()
 		  nebo přímo proměnnou získanou při vytvoření  inic_var.refresh()
 		provede znovunačtení a vygenerování tabulky podle zapamatovaných nebo změněných údajů
 		- ! vrací
 			true - pokud je vše OK
 			false - pokud v uživatelské funkci get sql param došlo k chybě, jako třeba špatně vyplněný formulář
+	.loading()
+		- vrací true pokud se zrovna nahrávají dat - nelze volat refresh, jinak false
 	.ResetAddDataFlag()
 		- resetuje příznak načtení dodatečných dat, tzn.při příštím refresh nebo operaci s tabulkou budou znovu načtena
 	.SetCollVisible(fieldname,visible)
@@ -265,7 +270,7 @@ funkce použitelné zvenku
 		- "fieldname" = je jméno fieldu, který má být skryt
 		
 	.getTableRef() vrátí referenci na htmlelement object tabulky
-  .getLastData() vrátí poslední načtená data
+	.getLastData() vrátí poslední načtená data
 	.SetPrintName(name) nastaví print nadpis
 	
 	.val() vrátí vybrané hodnoty z označených řádků jako pole řetězců podle voleb při vytváření viz výše - selectable	multiselect
