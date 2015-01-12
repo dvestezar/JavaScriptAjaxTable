@@ -215,6 +215,7 @@
 	margin-bottom: 2px;
 }
 .ajaxtblsuma td{
+	background-color:#ffd700; 
 	background: -moz-linear-gradient(center top , #ffd700, #ff8c00) repeat scroll 0 0 transparent;
 	background: -webkit-gradient(linear, center top, center bottom, from(#ffd700), to(#ff8c00)); /* for webkit browsers */
 	filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ffd700', endColorstr='#ff8c00'); /* for IE */

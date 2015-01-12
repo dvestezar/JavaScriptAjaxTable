@@ -1,4 +1,15 @@
-﻿v 2.3.5
+﻿v 2.3.7
+	- ADD : requesttype v params při inicializaci
+
+v 2.3.6
+	- FIX : pokud je table selected tak si zapamatuje označené řádky po refresh
+	- EXT : rozšíreny parametry ondataload, možnost modifikace dat po příjmu dat
+	- FIX : CSS foot tabulky pro IE
+	- FIX : odchycení hlavního AJAX erroru
+	- EXT : chyby jdou také do logu konsoly
+	- FIX : při použití refresh v době načítání dat je proveden abort AJAXu
+
+v 2.3.5
 	- FIX : oprava mazání tabulky pro další generování tabulky při refresh, volání přesunuto až po načtení dat - stabilní zobrazení tabulky bez problíkávání
 	- FIX : nelze provést refresh v průběhu refresh
 	- ADD : funkce 'loading' která vrací true/flase pokud se zrovna nahrávají data - info o tom že nelze volat refresh

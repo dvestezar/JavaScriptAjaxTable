@@ -1,6 +1,6 @@
 ﻿/*
 $NOTE: ********************* JavaScript Ajax table ********************
-v 2.3.5
+v 2.3.7
 by Dvestezar www.dvesstezar.cz
 využívá knihovny
   - jQuery (psáno s 1.8.3)
@@ -137,6 +137,8 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 	var ontdcontext;
 	var ontrcontext;
 	var refreshing=false;
+	var selected_vals;
+	var requesttype ='POST';
 	
 	var offlinedata; // data která budou použita pokud chceme tabulku jako offline
 
@@ -345,7 +347,12 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			if(p.ontdcontext!=undefined)
 				ontdcontext=p.ontdcontext;
 			if(p.ontrcontext!=undefined)
-				ontrcontext=p.ontrcontext;				
+				ontrcontext=p.ontrcontext;
+			if(p.requesttype!=undefined){
+				if(/^((get)|(post))$/i.test(p.requesttype)){
+					requesttype=p.requesttype;
+				}
+			}
 		}else{
 			p={};
 			p.firstread=true;
@@ -419,12 +426,13 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 	this.loading = function(){
 		return refreshing;
 	}
-	this.refresh = function(msg){
+	this._refresh = function(msg){
 		if((msg!=true)&&(msg!=false))
 			msg=false;
 		if(refreshing){
 			if(msg==true)
 				alert(lang.loading_alert);
+			try{ajx.abort()}catch(e){};
 			return;
 		}
 		var b,el,d,dd;
@@ -432,15 +440,11 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 		//sqlp je již hotový řetězec JSON na poslání - není potřeba jej nijak měnit
 		if(sqlparamfn!=undefined){
 			//při volání funkce se musí sqlp převést na objekt
-			try{
-				b=JSON.parse(sqlp);
-			}catch(e){
-				b={};
-			}
+			try{b=JSON.parse(sqlp);}catch(e){b={};}
 			try{
 				b=sqlparamfn(b);
 			}catch(e){
-				alert('Chyba scriptu : event sqlparamfn - '+e);
+				JB.help.errToConsole('JBajaxTable fn refresh : user fn sqlparam error',e);
 				b=null;
 			}
 			if(b==null)
@@ -462,11 +466,12 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 		}else{
 			mr=mr.vis;
 		}
+		selected_vals=this.val();
 		if(offlinedata==undefined){
 			refreshing=true;
 			ajx = jQuery.ajax({
 				url:fscriptfilename,
-				type:"post",
+				type:requesttype,
 				data:{
 					s:sql,					//identifikace SQL dotazu - název
 					o:get_order_string(),	//řetězec řazení jen to co je za ORDER BY
@@ -479,6 +484,14 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 				dataType:'text',//bez procesingu
 				success:(function(response,status,jqXHR){
 					this.gen(jqXHR);
+					this.val(selected_vals); //obnov selected
+				}).bind(this),
+				error:(function(xhr,txstatus){
+					this.setNadpis(nadp_loading);
+					var a='JBajaxTable fn refresh : AJAX error \nStatus : '+txstatus;
+					console.log(a);
+					a=a.replace(/\n/,'<br />');
+					this.err.set(a);
 				}).bind(this),
 				complete:(function(){
 					refreshing=false;
@@ -491,6 +504,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 		}
 		return true;
 	}
+	this.refresh = this._refresh.bind(this);
 	this.gen= function(response){
 		// $NOTE: prijem dat a volnani generovani tabulky
 		d=suma_text;
@@ -502,7 +516,10 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 
 		var ch;
 		if(response.status!=200){
-			try{ch=response.responseText;}catch(e){ch=e;};
+			try{ch=response.responseText;}catch(e){
+				JB.help.errToConsole('JBajaxTable fn gen : response error',e);
+				ch=e;
+			};
 			this.err.set(lang.err_serv + ' : '+response.status+'<br>'+ch);
 			return;
 		}
@@ -557,6 +574,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 						try{
 							onemptydata();
 						}catch(e){
+							JB.help.errToConsole('JBajaxTable fn gen : onemptydata error',e);
 							a+='  '+e;
 						};
 					}
@@ -564,7 +582,8 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 					
 					//toto je definováno i ve funkci this.gen_tbl,
 					//redefinováno tady	protože při empty data by ondadaloaded nenastalo
-					if(OnDtLd!=undefined){try{OnDtLd(ELtbl,true);}catch(e){
+					if(OnDtLd!=undefined){try{OnDtLd(ELtbl,true,{},this);}catch(e){
+						JB.help.errToConsole('JBajaxTable fn gen : ondataloaded error',e);
 						this.err.add('Error ondataloaded fn : '+e.message+'<br><br>');
 					}}
 
@@ -572,6 +591,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 					//toto je definováno i ve funkci this.gen_tbl
 					//redefinováno tady	protože protože při empty data by nebylo voláno
 					if(OnTblFns!=undefined){try{OnTblFns(ELtbl,true);}catch(e){
+						JB.help.errToConsole('JBajaxTable fn gen : ontablefinish error',e);
 						this.err.add('Error ontablefinish fn : '+e.message);
 					}}
 					
@@ -594,6 +614,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 								}
 							}
 						}catch(e){
+							JB.help.errToConsole('JBajaxTable fn gen : err error',e);
 							xx=e+'  ';
 						}
 						a.msg=xx+' '+a.msg;
@@ -626,6 +647,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			this.testrefreshtime();
 			this.resetautorefrtime();
 		}catch(e){
+			JB.help.errToConsole('JBajaxTable fn gen : script error',e);
 			this.err.set(lang.err_js+' : ' + e);
 		}
 	}
@@ -634,6 +656,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 		if(!JB.is.und(d.add_data)){ //pokud je server vrátil
 			ELtbl.add_data=d.add_data;
 			try{if(OnADLoad!=undefined){OnADLoad(d.add_data);}}catch(e){
+				JB.help.errToConsole('JBajaxTable fn testdata : onadddataloaded error',e);
 				chb += 'Error onloaddata fn : '+e.message+'<br><br>';
 			}
 		}	
@@ -665,6 +688,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			}
 			window.setTimeout(this.testrefreshtime.bind(this),1000);
 		}catch(e){
+			JB.help.errToConsole('JBajaxTable fn testrefreshtime : script error',e);
 			autorefrtimer=-1;
 		}
 	}
@@ -784,10 +808,10 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 		}
 		
 		//toto je definováno i ve funkci this.gen, protože při empty data by nebylo voláno
-		if(OnDtLd!=undefined){try{OnDtLd(ELtbl,false);}catch(e){
+		if(OnDtLd!=undefined){try{OnDtLd(ELtbl,false,d.data,this,d.add_data);}catch(e){
+				JB.help.errToConsole('JBajaxTable fn gen_tbl : ondataloaded error',e);
 				chb += 'Error ondataloaded fn : '+e.message+'<br><br>';
 		}}
-		
 		
 		d=d.data;
 		last_data=d;
@@ -809,6 +833,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			for(a=0;a<d.length;a++){
 				//before make table row
 				if(OnBefTrCr!=undefined){try{OnBefTrCr(tb,d[a],d[a-1],a);}catch(e){
+					JB.help.errToConsole('JBajaxTable fn gen_tbl : onbefortrcreate',e);
 					chb += 'Error onTR fn : '+e.message+'<br><br>';
 				}}
 				//generuj z dat
@@ -875,6 +900,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 				if(OnSel!=undefined){try{					
 					tr.onclickRun=OnSel;
 				}catch(e){
+					JB.help.errToConsole('JBajaxTable fn gen_tbl : onselect error',e);					
 					chb += 'Error onTR fn : '+e.message+'<br><br>';
 				}}
 				
@@ -889,6 +915,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 										this.selectujFN(event);
 									}
 								}catch(e){
+									JB.help.errToConsole('JBajaxTable fn tr mousedown : leftclick script error',e);
 									this.toto.err.add('Error onclick - select fn : '+e.message+'<br><br>');					
 								}
 								// zavolej onclick pokud zadáno
@@ -897,6 +924,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 										this.onclickRun(event);
 									}
 								}catch(e){
+									JB.help.errToConsole('JBajaxTable fn tr mousedown : onclick error',e);
 									this.toto.err.add('Error onclick - click fn : '+e.message+'<br><br>');					
 								}
 							}
@@ -913,6 +941,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 								return false;
 							}
 						}catch(e){
+							JB.help.errToConsole('JBajaxTable fn mouse context : script error',e);
 							this.toto.err.add('Error ontrcontext - click fn : '+e.message+'<br><br>');
 						}
 					});
@@ -926,12 +955,14 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 							this.runondblclick(this);
 							// this.toto.err.add('tr dblclick test ok');
 						}catch(e){
+							JB.help.errToConsole('JBajaxTable fn ondblclick : script error',e);
 							this.toto.err.add('Error ondblclick fn : '+e.message+'<br><br>');
 						}
 					}
 				}
 				//before make table row
 				if(OnTRc!=undefined){try{OnTRc(tr);}catch(e){
+					JB.help.errToConsole('JBajaxTable fn ontrcreate : script error',e);
 					chb += 'Error onTR fn : '+e.message+'<br><br>';
 				}}
 				// ******* buňka
@@ -949,6 +980,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 						td.tr_el=tr;
 						//on create TD
 						if(OnDTc!=undefined){try{OnDTc(td);}catch(e){
+							JB.help.errToConsole('JBajaxTable fn ontdcreate : script error',e);
 							chb += 'Error onTD fn : '+e.message+'<br><br>';
 						}}
 						// $TODO přidat ontdclick
@@ -961,6 +993,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 										return false;
 									}
 								}catch(e){
+									JB.help.errToConsole('JBajaxTable fn ontdcontext : script error',e);
 									this.toto.err.add('Error ontdcontext - click fn : '+e.message+'<br><br>');
 								}
 							});
@@ -969,7 +1002,8 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 				}
 				//after make table row
 				if(OnTRce!=undefined){try{OnTRce(tb,d[a],d[a-1],a);}catch(e){
-						chb += 'Error onTR fn : '+e.message+'<br><br>';
+					JB.help.errToConsole('JBajaxTable fn onaftertrcreate : script error',e);
+					chb += 'Error onTR fn : '+e.message+'<br><br>';
 				}}
 			}
 			//vytvoř hlavičku
@@ -1052,11 +1086,13 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			if(shpr)add_menu_btn(lang.print,{pop:lang.print_alt,onclick:(function(){this.print()}).bind(this)});
 			if(selectuj){
 				//sellAll
-				add_menu_btn(lang.sellall,{pop:lang.sellall_alt,onclick:(function(){this.selAll()}).bind(this)});
+				if(multiselect)
+					add_menu_btn(lang.sellall,{pop:lang.sellall_alt,onclick:(function(){this.selAll()}).bind(this)});
 				//deselAll
 				add_menu_btn(lang.desellall,{pop:lang.desellall_alt,onclick:(function(){this.selClear()}).bind(this)});
 				//invertSel
-				add_menu_btn(lang.selinv,{pop:lang.selinv_alt,onclick:(function(){this.selInv()}).bind(this)});
+				if(multiselect)
+					add_menu_btn(lang.selinv,{pop:lang.selinv_alt,onclick:(function(){this.selInv()}).bind(this)});
 			}
 			//pokud stránkování, tak přidej z foot stránkování
 			this.add_strankovani_text(tblr,sel,pg,cnt,it,max,false);
@@ -1081,6 +1117,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 		//tabulka finišuje
 		//toto je definováno i ve funkci this.gen, protože při empty data by nebylo voláno
 		if(OnTblFns!=undefined){try{OnTblFns(ELtbl,false);}catch(e){
+			JB.help.errToConsole('JBajaxTable fn gen_tbl : ontablefinish error',e);
 			this.err.add('Error ontablefinish fn : '+e.message);
 		}}
 	}
@@ -1389,10 +1426,10 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			JB.x.cel('span',{tx:lang.rs_zobr,ob:a});
 		}
 	}	
-	this.savecolsinfo = function(){
+	this._savecolsinfo = function(){
 		jQuery.ajax({
 			url: fscriptfilename,
-			type:'post',
+			type:requesttype,
 			data:{
 				save:IDtbl,
 				cols:JSON.stringify(flds_vis)
@@ -1401,6 +1438,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 		.fail(function(){alert(lang.save_colsinfo);})
 		.always(function(){ELtbl.ajxtbl.refresh()});
 	}
+	this.savecolsinfo = this._savecolsinfo.bind(this);
 	this.resetcols = function(){
 		if(confirm(lang.rs_zobr_qe)){
 			flds_vis = {};
@@ -1459,6 +1497,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			//wn.print();
 			//wn.close();
 		}catch(e){
+			JB.help.errToConsole('JBajaxTable fn print : script error',e);
 			alert('ERR : ' + e);
 		}
 	}
@@ -1473,7 +1512,9 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			multiselect=false;
 	}
 	this.val=function(x){
-		if(x==undefined){
+		if(JB.is.und(x)){
+			if(JB.is.und(last_data))
+				return [];
 			//vrať hodnotu
 			var v=[];
 			var a,x;
@@ -1490,14 +1531,18 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			}
 			return v;
 		}else{
+			if(JB.is.und(last_data))
+				return;
 			//pokus se nastvit / vybrat hodnoty a nastav css
 			if(typeof x == typeof []){
 				var b;
 				if(last_data[0][selectable]!=undefined){
 					for(a=1;a<ElTblObj.rows.length;a++){
-						b=x.indexOf(String(ElTblObj.rows[a].val[selectable]));
-						ElTblObj.rows[a].sel= b>-1;
-						setcsstr(ElTblObj.rows[a]);
+						if(!JB.is.und(ElTblObj.rows[a].val)){
+							b=x.indexOf(String(ElTblObj.rows[a].val[selectable]));
+							ElTblObj.rows[a].sel= b>-1;
+							setcsstr(ElTblObj.rows[a]);
+						}
 					}
 				}
 			}
@@ -1524,12 +1569,15 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 				}
 			}
 		}catch(e){
+			JB.help.errToConsole('JBajaxTable fn set_html_element : script error',e);
 		}
 	}
 	this.GetLastSelectedVal=function(){
 		return last_selected_val;
 	}
 	this.selAll=function(){
+		if(!multiselect)
+			return;
 		var a,b;
 		for(a=1;a<ElTblObj.rows.length;a++){
 			ElTblObj.rows[a].sel=true;
@@ -1546,6 +1594,8 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 		set_html_element();
 	}
 	this.selInv=function(){
+		if(!multiselect)
+			return;	
 		var a,b;
 		for(a=1;a<ElTblObj.rows.length;a++){
 			ElTblObj.rows[a].sel=!ElTblObj.rows[a].sel;

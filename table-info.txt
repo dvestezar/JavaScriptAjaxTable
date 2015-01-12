@@ -20,7 +20,8 @@ použití  tblxxx = new JBajaxtable.init(sqlname,idtbl,{order,fields,sqlparam,or
 			title		= nastaví nadpis tabulky, na následující změny lze použít funkci .setNadpis, pokud není zadáno, je použito '' a TR s nadpisem je skryt
 			firstread	= jestli se mají data načíst pri inicializaci, nebo bude první načtění vyvoláno až kódem přes refresh
 						default je true
-			order		= jméno fieldu podle kterého se má řadit / pro sestupné se přidá ' DESC' tj 'fieldxxx desc'
+			requesttype = POST nebo GET
+			order		= jméno fieldu/ů podle kterého se má řadit / pro sestupné se přidá ' DESC' tj 'fieldxxx desc', oddělené čárkami
 			fields		= definování názvů a skrytí fieldu
 						- object {'filed':'nazev','field2':'nazev2'}
 							kde
@@ -32,37 +33,38 @@ použití  tblxxx = new JBajaxtable.init(sqlname,idtbl,{order,fields,sqlparam,or
 			selectable	=	default=prázdný řetězec jinak obsahuje řetězec názvu klíčového fieldu
 							pokud je název nalezen, tak je zprovozněno vybírání řádků a propertie tohoto objectu ".val", popis viz níže,
 							v základu jde vybrat jen jeden řádek, viz další proměnná
+							
+							vybrané řádky se pamatují přes refresh
 			multiselect =   default je false, pokud není zadána předchozí proměnná, je tato volba ignorována
 							pokud true, lze vybrat více řádků, ovlivňuje propertie tohoto objektu ".val" viz níže
 							tato hodnota lze měnit za běhu funkcí na tomto objektu ".changeMultiselect(bool)"
 			set_element_on_sel = default undefined pokud nastaveno tak obsahuje HTML form element nebo jeho string ID, jako je textarea, text, hidden atp.,
 							který bude nasteven po selectu
 			sel_element_json = default=false, pokud true, vrátí do value elementu vybrané hodnoty(pole) jako JSON text
-			set_HTMLinner_on_sel = default undefined pokud nastaveno tak bude nstaveno HTMLinner objektu - 
-							bsahuje HTML jakýkoliv element nebo jeho string ID, jako je DIV SPAN atp
+			set_HTMLinner_on_sel = default undefined pokud nastaveno tak bude nastaveno innerHTML objektu - 
+							- pokud nastaveno tak obsahuje jakýkoliv HTML element nebo jeho string ID, jako je DIV SPAN atp
 			
 			showfilters = jestli se má zobrazit tlačítko pro filtrování sloupců, max počtu řádků atp. v hlavičce
 						default je false (bezpečnost)
-			sqlparam	= objekt parametrů které budou odeslány jako json string v parametru "p"
-						př.: skrip na serveru nahradí v řetězci SQL parametry z této proměnné
-						- v sql dotazu jsou definovány proměnné začínající znakem @
-						- př.: v sql  proměnné @dt a @neco definujeme jako objekt
-							{dt:'2011-11-01',neco:'cokoliv'}
+			sqlparam	= objekt default parametrů které budou odeslány jako json string v parametru "p"
+							př : {dt:'2011-11-01',neco:'cokoliv'}
 						!!! pozor tento parametr je ovlivněn udáslostí sqlparamfn viz. níže !!!
-			scriptfilename = možnost změnit základní ovládací script 'get_tbl.asp'
-			
+			scriptfilename = možnost změnit základní ovládací script serveru 'get_tbl.asp'
+							AJAX volá tento název jako URL + parametry
 			offlinedata = pole které je normálně vraceno jako JSON, pokud je použito toto, nebude volán ajax JSON, ale vemou se data z této proměnné
 						bude ignorováno vše co je spojené s online definicí a aktualizací jako sqlname sqlparam, scriptfilename order ordering atp ...
 						!!! sqlname musí být zadáno jako prázdný řetězec !!!!
 						U offline nefunguje refresh a menu pro zobrazení sloupců a autorefresh
-						není ignorováno fileds
+						není ignorováno fields
 						data musí mít formát jako JSON co vrací ajax, povinné je data nebo ArrData a nepovinné adddata
 						
 						ostatní povinná property ajax JSON se nastaví automaticky
 						tj.
 							{
+								//jedno ze dvou následujících
 								data:assocarray,
 								ArrData:headarray,
+								//dále ...
 								adddata:{
 									table1:{assocarray},
 									table2:{assocarray}
@@ -73,6 +75,12 @@ použití  tblxxx = new JBajaxtable.init(sqlname,idtbl,{order,fields,sqlparam,or
 								maxrow:9999999,	//automat
 								cnt:1,			//automat
 								colsinfo : undef //nevyužito
+								add_data : undef // nevyužito, jinak objekt přídavných dat podle addquery, nebo vrácených skriptem
+													příklad 
+													{
+														data1:data,
+														data2:data
+													}
 							}
 						
 						
@@ -96,11 +104,11 @@ použití  tblxxx = new JBajaxtable.init(sqlname,idtbl,{order,fields,sqlparam,or
 						]
 						
 			ordering = jestli má být dostupná fukce řazení a jestli zobrazovat jak je řazeno, default je true
-			order_ren	= objekt podmínek řazení
-						  {fieldname:{s:'zobrazene jmeno v řádku řezeno',da:'definice řazení sestupně',dc:'definice řazení vzestupně'},fieldname2:{s:'xx',da:'def asc',dc:'def desc'}...}
-						!!! fieldname se doporučuje používat v apostrofech - SQL může používat jména fieldu jako 'tabulka.field'
+			order_ren	= objekt podmínek řazení / jen online
+						  {<fieldname>:{s:'zobrazené jmeno v řádku řezeno',da:'definice řazení sestupně',dc:'definice řazení vzestupně'},fieldname2:{s:'xx',da:'def asc',dc:'def desc'}...}
+						!!! <fieldname> se doporučuje používat v apostrofech - SQL může používat jména fieldu jako 'tabulka.field'
 						- pokud není použito je pro řazení použito fieldů z headeru tabulky pro daný sloupec
-						  tzn. pokud klikneme na header sloupce 1 kde jméno je fielname bude do SQL použito 'ORDER BY diledname popř DESC'
+						  tzn. pokud klikneme na header sloupce 1 kde jméno je fielname bude do SQL použito 'ORDER BY filedname popř DESC'
 						  
 						  kde
 							da = pokud má první sloupec jmeno fieldu 'fieldname', pak po kliknutí na sloupec
@@ -129,14 +137,12 @@ použití  tblxxx = new JBajaxtable.init(sqlname,idtbl,{order,fields,sqlparam,or
 						      dál klikneme na sloupec1(field1) tak budeme řadit podle field1 a potom field2
 							  atd...
 			
-			addquery	= řetězec názvů dotazů SQL definovaných v XML, parametry jsou použity z předchozího parametry
-						pro toto nelze použít order, jen v definici XML
-						př:'dotaz1,dotaz2'
-						script serveru vrádí dodatečné dotazy v root vrácených dat jako add_data.dotazx.data
+			addquery	= řetězec dodatečných názvů dotazů, které se načtou jen jednou při inicializaci, vynutit refresh lze viz dále
+						script serveru vrátí dodatečné dotazy v root vrácených dat jako add_data.dotazx.data
 						toto je provedeno jen jednou při prvním spuštění(načtení stránky a inisializaci)
 						tyto data jsou připojeny k hlavním DIV jako property .add_data
 						tzn. přístup k nim z venku je 
-						  document.getElementById('xxx').add_data
+						  instance_tohoto_objektu.add_data
 						zevnitř
 						  ELtbl.add_data
 						-pokud potřebujeme znovu načíst dodatečná data zavoláme .ResetAddDataFlag() .refresh()
@@ -144,29 +150,30 @@ použití  tblxxx = new JBajaxtable.init(sqlname,idtbl,{order,fields,sqlparam,or
 			
 			printname	= obsah nadpisu na tisknuté stránce, pokud není zadáno je použit default 'Tisk AJAX Table'
 							lze ovlivnit funkcí SetPrintName(name)
-			showprint	= když false tak není v hlavičce zobrazen odkaz na Tisk, pokud není zadáno tak je použit default true
+			showprint	= default true - když false tak není v hlavičce zobrazen odkaz na Tisk, pokud není zadáno tak je použit
 			
 			autorefresh = default 0 , 0=zakázáno, jinak čas v sekundách kdy se bude tabulka obnovovat (min je 60s)
 			
-			elementerror= html element DIV který bude obsahovat chybové zprávy
+			elementerror= html element DIV který bude obsahovat chybové zprávy tabulky
 						- pokud není zadán, bude vytvořen pod FOOT tabulky řádek ve kterém se zprávy budou zobrazovat
 			bodyheight	= (zápis css stylem "height:200px")
 						pokud je nastaveno, tak se omezí velikost těla tabulky na určenou výšku
 						tzn.hlavička bude stálá a tělo bude scrollovatelné
-			trsel		= bude zvýrazněno CSStřídou trCSS pokud true - default je true / nemusí být zadáno
-			trCSS		= definování CSS třídy pro zvýraznění, pokud je trsel true - default CSS je sel_lr
+			trsel		= default true - pokud true budou řádky zvýrazňovány při přejetí myši CSStřídou z trCSS
+			trCSS		= default string 'sel_lr' - definování CSS třídy pro zvýraznění řádku při přejetí myši, pokud je trsel true
 			
 	Events:
 			sqlparamfn  = funkce pro získání objektu parametrů při refresh, fn je volána před odesláním parametrů
 							- funkce je volána funkce(objekt_sqlparametru)
 							- tato funkce je volána s objektem SQL parametrů, ne JSON stringem, který je zaslán na server
-								tento objekt je generován z objektu sqlparam při inicializace, který mohl být zamozřejmě
-								změněn funkcí SetParam (viz.níže)
+								tento objekt je generován z objektu sqlparam při inicializaci, který mohl být zamozřejmě
+								změněn uživatelskou funkcí SetParam (viz.níže)
 							- tato funkce může objekt paramterů plně nahradit a zapomenout objekt_sqlparametru, tím je ignorováno sqlparam při inicializaci a funkce SetParam
 								nebo může jen objekt_sqlparametru opravit, přidat properties atp
 							- pokud funkce vrátí null, tak není dotaz proveden, bude zastaveno refresh - refresh je tímto zakázán, např chybné údaje
 							- jinak musí funkce vrátit objekt parametrů, který je následně převeden do json (uživatel se nemusí starat) string a odeslán jako parametr "p"
-			onbefortrcreate = fn folaná před vytvořením elementu řádky function(tbl,newdata,olddata,idx)
+							
+			onbefortrcreate(tbl,newdata,olddata,idx) = fn folaná před vytvořením elementu řádky
 						kde
 						- tbl je element tabulky
 							-> tbl.toto = tento object
@@ -174,7 +181,8 @@ použití  tblxxx = new JBajaxtable.init(sqlname,idtbl,{order,fields,sqlparam,or
 						- olddata jsou data pro předešlý řádek
 						- newdata jsou data pro nový řádek
 						- idx je index řádku z pole dat
-			ontrcreate	= fn volaná před vytvořením řádku tabulky, tj TR je vytvořen ale není vyplněn buňkami function(tr)
+						
+			ontrcreate(tr)	= fn volaná před vytvořením řádku tabulky, tj TR je vytvořen ale není vyplněn buňkami
 						kde
 						tr je element řádky tabulky
 						tr.val jsou objekt ze kterého se generuje řádek
@@ -183,53 +191,76 @@ použití  tblxxx = new JBajaxtable.init(sqlname,idtbl,{order,fields,sqlparam,or
 						až
 						tr.val.fieldnameNx=value
 						tr.val={field1:val1,field2:val2 ....}
-			onaftertrcreate = jako předchozí onbefortrcreate ale je volána až po vytvoření řádky, parametry stejné
-			ontdcreate	= fn volaná při vytvoření buňky tabulky function(td) 
+						
+			onaftertrcreate(tr) = jako předchozí onbefortrcreate ale je volána až po vytvoření řádky, parametry stejné
+			
+			ontdcreate(td)	= fn volaná při vytvoření buňky tabulky
 						kde
 						td je element buňky tabulky
 						td.val je hodnota kterou obsahuje buňka
 						td.field je název fieldu (sloupce)
 						td.tr = tr.val tzn. td.tr.filedname vrátí hodnotu fieldu z právě generovaného řádku nebo při nestandartním názvu fieldu td.tr['filed.name']
-			onheadertdclick = fn volaná při kliknutí na buňku v hlavičce tabulky function(td) kde td je elemen buňky tabulky
-						-funkce může vrátit false pro zákázání provedení interního (zmenu)řazení, které je standartně provedeno
-			ondblclick	= fn volaná při dvojkliku na datové buňky - function() přístup k datům je přes this,
+						
+			onheadertdclick(td) = fn volaná při kliknutí na buňku v hlavičce tabulky kde td je elemen buňky tabulky
+						-funkce může vrátit false pro zákázání provedení interního (změnu)řazení, které je standartně provedeno
+						
+			ondblclick()	= fn volaná při dvojkliku na datové buňky - přístup k datům je přes this,
 							this=objekt tr, tzn:
 								this.val  = jsou data řádku stejně jako tr.val
 								this.toto = tento objekt
-			onadddataloaded = fn je volána jen při načtení dodatečných dat (script serveru je vrátí) function(add_data) kde add_data je objekt vrácených dat
+								
+			onadddataloaded(add_data) = fn je volána jen při načtení dodatečných dat (script serveru je vrátí), kde add_data je objekt vrácených dat
 							tato fn je volána i když jsou hlavní data EMPTY
-			ondataloaded = fn(odkaz na element div pro tabulku, boolean jestly byla data empty - empty=true) je volána po načtení dat pro tabulku, těsně před jejím generování(tabulka je zrovna smazána, přístup k datům jako předchozí)
+							
+			ondataloaded(ElTbl,data_empty,data,this,adddata) =
+						ElTbl		= (HTML element) odkaz na element div pro tabulku
+						data_empty	= (boolean) 	jestly byla data prázdná - empty=true
+						data		= (assocobjekt) přijatá data, možno modifikovat
+						this		= (objekt)		tento objekt
+						adddata		= (objekt)		přídavná data, pokud byla přijata
+							
+							funkce je volána po načtení dat pro tabulku, těsně před jejím generování(tabulka je zrovna smazána, přístup k datům jako předchozí)
 							také je volána i když jsou data prázdná - ajax chyba empty
+							
 			onemptydata  = fn je volána, když byly vráceny prázdná data, v tomto případě není volána ani onadddataloaded ani ondataloaded, tato funkce je pro ošetření
-			ontablefinish = fn(odkaz na element div pro tabulku, boolean jestly byla data empty - empty=true) je volána po vygenerování tabulky
+			
+			ontablefinish(odkaz na element div pro tabulku, boolean jestli byla data empty - empty=true)
+						je volána po vygenerování tabulky
 							fn(el)  potom ve funkci el.ajxtbl je odkaz na tento objekt
 							také je volána i když jsou data prázdná - ajax chyba empty
-			onselect	=  fn volaná při kliknutí myší na řádek - function() ve funkci this.val je přístup k datům toto nahrazuje onclick na TR
+							
+			onselect()	=  fn volaná při kliknutí myší na řádek - ve funkci this.val je přístup k datům toto nahrazuje onclick na TR
 								this.val  = jsou data řádku stejně jako td.val
 								this.toto = tento objekt
-			ontdcontext = fn(event,td) tato funkce je volána, pokud je kliknuto pravým tlačítkem myši na buňku dat
-			ontrcontext = fn(event,tr) tato funkce je volána, pokud je kliknuto pravým tlačítkem myši na řádek dat
+								
+			ontdcontext(event,td) = tato funkce je volána, pokud je kliknuto pravým tlačítkem myši na buňku dat
+			
+			ontrcontext(event,tr) = tato funkce je volána, pokud je kliknuto pravým tlačítkem myši na řádek dat
 		
 jediné povinné údaje jsou sqlnane, a idtable
 přístup k objektu je možno vytvořenou proměnnou v DIVu volaného při vytváření
 	document.getElementById('xxx').ajxtbl
 		kde xxx je ID DIVu ve kterém je tabulka vytvářena
-přístup do objektu je samozřejmě také možný přes proměnnou která je vrácena funkcí při vytváření tabulky, pokud je var používána globálně
+! přístup do objektu je samozřejmě také možný přes proměnnou která je vrácena funkcí při vytváření tabulky, pokud je var používána globálně
 
 proměnné využitelné pro případné funkce ontrcreate,ontdcreate
 	na každém td bude vytvořeno property
 		.val = hodnota buňky
 		.field = skutečný název fieldu z sql(toto je i u buněk hlavičky, hlavička nemá hodnotu .val)
 		.toto = tento objekt
-		.tbl = je element tabulky
-		.tr je odkaz na objekt fieldů ze kterého je generován řádek, stejné jako tr.val
-		.tr_el = odkaz na element TR který obsahuje tuto buňku
+		.tbl = je HTML element tabulky
+		.tr je odkaz na (data) objekt fieldů ze kterého je generován řádek, stejné jako tr.val
+			čte se td.tr[<jinýfield>]
+			obsahuje stejná data jako z následující .val
+		.tr_el = odkaz na HTML element TR který obsahuje tuto buňku
 	na každém tr těla tabulky bude vytvořen property
 		.val = objekt z kterého byl generován řádek tzn.: {field1:val1,field2:val2 ....}
 			přístup k hodnotám je .val['fieldx']
+			obsahuje stejné data jako u předchozí .tr
 		.toto = tento objekt
 		.tbl = je element tabulky
 	document.getElementById('xxx').ajxtbl.val
+	nebo přes proměnnou při vytcoření objektu <instance_tohoto_objektu>.val
 		- obsahuje objekt poslední načtená data přes ajax, z těchto dat je generována tabulka
 		  obsahuje i info o stránce, počtu řádků, omezení řádků atp
 		  objekt
@@ -241,45 +272,57 @@ proměnné využitelné pro případné funkce ontrcreate,ontdcreate
 			.msg  = musí se rovnat "OK", jinak obsahuje chybu vrácenou serverem
 		  pokud je cnt>maxrov tak je použito stránkování
 
-funkce použitelné zvenku
+funkce použitelné zvenku přes
+1)<instance_tohoto_objektu> - objekt vzniklý při vytvoření
+2)document.getElementById('xxx').ajxtbl
+
 	.setNadpis(tx) = změna nadpisu tabulky, '' skryje TR nadpisu
+
 	.setSouhrn(tx) = změna souhrnu tabulky
+
 	.setPopis(tx)  = změna popisu tabulky
+
 	.err  = objekt pro práci s textem chyby
-			.add = přidá   text do error elementu viz elementerror výše
-			.set = přepíše  -||-
-	popis a souhrn se maží s update nebo clear tabulky
+			.add(tx) = přidá   text do error elementu viz elementerror výše
+			.set(tx) = přepíše  -||-
+	! popis a souhrn se maží s update nebo clear tabulky
 	
 	.refresh(msg)
-		msg(boolean default=false) pokud true tak se při pokusu volání refresh v průběhu načítání dat zobrazí hlášní, že nelze provést
+		msg(boolean default=false) pokud true tak se při pokusu volání refresh v průběhu načítání dat zobrazí hlášení, že nelze provést
 		refresh nelze provést znovu pokud se zrovna reflreshuje
-	
-		- document.getElementById('xxx').ajxtbl.refresh()
-		  nebo přímo proměnnou získanou při vytvoření  inic_var.refresh()
+		  
 		provede znovunačtení a vygenerování tabulky podle zapamatovaných nebo změněných údajů
 		- ! vrací
 			true - pokud je vše OK
 			false - pokud v uživatelské funkci get sql param došlo k chybě, jako třeba špatně vyplněný formulář
+
 	.loading()
 		- vrací true pokud se zrovna nahrávají dat - nelze volat refresh, jinak false
+		
 	.ResetAddDataFlag()
 		- resetuje příznak načtení dodatečných dat, tzn.při příštím refresh nebo operaci s tabulkou budou znovu načtena
+		
 	.SetCollVisible(fieldname,visible)
 		- nastaví viditelnost sloupce na ano/ne / nastavení neviditelnosti v objektu "fields" při vytváření má prioritu
 		- "visible" = true/false
 		- "fieldname" = je jméno fieldu, který má být skryt
 		
-	.getTableRef() vrátí referenci na htmlelement object tabulky
+	.getTableRef() vrátí referenci na htmlelement objekt tabulky
+	
 	.getLastData() vrátí poslední načtená data
+	
 	.SetPrintName(name) nastaví print nadpis
 	
 	.val() vrátí vybrané hodnoty z označených řádků jako pole řetězců podle voleb při vytváření viz výše - selectable	multiselect
 			pokud multiselect = false tak je vráceno jednorozměrné pole, pokud není select zprovozněno, tak je vráceno jen []
 			vybírá podle klíče v "selectable" při vytváření
+			
 	.val(array) vybere(označí) řádky podle vstupního pole řetezců
 			pokud multiselect = false tak je vybrána hodnota v poli[0]
 			př:["1","ba"] vybere řádky, které obsahují tyto hodnoty, podle klíče v "selectable" při vytváření
+			
 	.GetLastSelectedVal() vrací hodnotu posledního vybraného řádku podle selectable
+	
 	.changeMultiselect(bool) nastaví multiselect
 	
 funkce ovlivňující SQL hledání z venku
@@ -360,8 +403,8 @@ navíc přidány css k předchozím tzn DIV tlačítka obsahuje např "ajaxheade
 			.ajaxtblheadmenubtn
 				.ajaxtblheadmenulink
 				
-************* pár tipů *******************
-- obarvení řádku tabulky při najetí myši - jen řádek s daty
+************* př. css *******************
+- obarvení řádku tabulky při najetí myši - jen řádek s daty, jinak řešeno programově
 	pomocí CSS
 	.ajaxtblbodyinner:hover{
 		color: #C60000;
