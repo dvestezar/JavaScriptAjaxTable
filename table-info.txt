@@ -12,8 +12,8 @@ použití  tblxxx = new JBajaxtable.init(sqlname,idtbl,{order,fields,sqlparam,or
 	kde
 		idtbl		= může být 1)string nebo 2)HTML element objekt
 					1) pokud je zadáno jako text, tak se bere jako ID elementu a pokusí se jej najít pomocí funkce document.getlementByID
-					2) pokud je na vstupu objekt tak se bere přímo jako HTML element objekt DIVu a !!! musí mít nastaven atribut ID !!!, toto id je použito při ukládání 
-						informací o uživatelských nastavení pro sloupce tabulky
+					2) pokud je na vstupu objekt tak se bere přímo jako HTML element objekt DIVu a !!! musí mít nastaven atribut ID !!!,
+						!!!! toto id je použito při ukládání informací o uživatelských nastavení pro sloupce tabulky
 			
 		sqlname		= jméno sql řetězce z XML
 		objekt nepovinných parametrů
@@ -173,6 +173,21 @@ použití  tblxxx = new JBajaxtable.init(sqlname,idtbl,{order,fields,sqlparam,or
 							- pokud funkce vrátí null, tak není dotaz proveden, bude zastaveno refresh - refresh je tímto zakázán, např chybné údaje
 							- jinak musí funkce vrátit objekt parametrů, který je následně převeden do json (uživatel se nemusí starat) string a odeslán jako parametr "p"
 							
+							pozor
+								pokud rozšíříme parametry o property "form", budou tyto přeneseny přímo do řetězce dotazu a ostatní
+									jako JSON v parametru řetězce dotazu "p"
+									
+								příklad:
+									params['form']={
+										name1:'val1',
+										name2:'val2'
+									};
+									params['ost']=5;
+									
+									to řetězce dotazu bude přidáno
+											?...&name1=val1&name2=val2&p=json_encode_objekt_parametru_bez_property_form
+										tzn	?...&name1=val1&name2=val2&p={'ost':5}
+							
 			onbefortrcreate(tbl,newdata,olddata,idx) = fn folaná před vytvořením elementu řádky
 						kde
 						- tbl je element tabulky
@@ -259,18 +274,6 @@ proměnné využitelné pro případné funkce ontrcreate,ontdcreate
 			obsahuje stejné data jako u předchozí .tr
 		.toto = tento objekt
 		.tbl = je element tabulky
-	document.getElementById('xxx').ajxtbl.val
-	nebo přes proměnnou při vytcoření objektu <instance_tohoto_objektu>.val
-		- obsahuje objekt poslední načtená data přes ajax, z těchto dat je generována tabulka
-		  obsahuje i info o stránce, počtu řádků, omezení řádků atp
-		  objekt
-			.data = pole objektů - řádků
-			.cnt  = celk.počet záznamů
-			.maxrow = na kolik je omezeno zobrazení počtu řádků
-			.pg	 = max.strana (pro zobrazení počet stran je pg+1)
-			.sel	 = vybraná strana (pro zobrazení strany je sel+1)
-			.msg  = musí se rovnat "OK", jinak obsahuje chybu vrácenou serverem
-		  pokud je cnt>maxrov tak je použito stránkování
 
 funkce použitelné zvenku přes
 1)<instance_tohoto_objektu> - objekt vzniklý při vytvoření
@@ -310,6 +313,18 @@ funkce použitelné zvenku přes
 	.getTableRef() vrátí referenci na htmlelement objekt tabulky
 	
 	.getLastData() vrátí poslední načtená data
+		- obsahuje objekt poslední načtená data přes ajax, z těchto dat je generována tabulka
+		  obsahuje i info o stránce, počtu řádků, omezení řádků atp
+		  pokud byl dodaz headedarray tak jsou data automaticky převedeny na assos array a uloženo v data
+			tzn. data (viz.níže) je vždy dostupné
+		  objekt
+			.data = pole objektů - assoc řádků
+			.cnt  = celk.počet záznamů
+			.maxrow = na kolik je omezeno zobrazení počtu řádků
+			.pg	 = max.strana (pro zobrazení počet stran je pg+1)
+			.sel	 = vybraná strana (pro zobrazení strany je sel+1)
+			.msg  = musí se rovnat "OK", jinak obsahuje chybu vrácenou serverem
+		  pokud je cnt>maxrov tak je použito stránkování
 	
 	.SetPrintName(name) nastaví print nadpis
 	
@@ -338,9 +353,11 @@ funkce ovlivňující SQL hledání z venku
 
 	SetOrder(order)
 		Nastavení řazení SQL dotazu (ORDER BY) obsahuje jen to co by mělo být za order by
+		volá refresh
 	SetParam(param)
 		params = objekt jako sqlparams při vytváření
 		Nastavení parametrů hledání přes proměnné (WHERE) nebo podle zpracování na straně serverscriptu
+		volá refresh
 		
 	př.SQL řetězce:
 	select kdo,kdy from tabulka where kdy between '@od' and '@do'

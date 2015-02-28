@@ -1,9 +1,9 @@
 ﻿/*
 $NOTE: ********************* JavaScript Ajax table ********************
-v 2.3.7
+v 2.3.9
 by Dvestezar www.dvesstezar.cz
 využívá knihovny
-  - jQuery (psáno s 1.8.3)
+  - jQuery (psáno s 1.8.5)
   - JB
 
 následující je globální language proměnná
@@ -59,10 +59,10 @@ var JBajaxtable_var = {
 		mysql_err_add_qr : 'Chyba dotazů z dotazu dodatečných dat',
 		end : 'Konec',
 		reachedminpage:'Dosáhl jsi první strany.',
-		reachedmaxpage:'Dosáhl jsi poslední strany.'
+		reachedmaxpage:'Dosáhl jsi poslední strany.',
+		ordcancel:'Zruš'
 	}
 };
-
 
 function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 	// jazyk
@@ -361,8 +361,13 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 		this.setSouhrn(suma_text);
 		this.setPopis(popis_text);
 		
-		if(p.firstread)
-			this.refresh();
+		if(p.firstread){
+			Q(document).ready(function(){
+				setTimeout(function(){
+					this.refresh();
+				}.bind(this),200);
+			}.bind(this));
+		}
 	}
 	this.err = {};
 	this.err.set = function(x){
@@ -438,6 +443,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 		var b,el,d,dd;
 
 		//sqlp je již hotový řetězec JSON na poslání - není potřeba jej nijak měnit
+		var form={};
 		if(sqlparamfn!=undefined){
 			//při volání funkce se musí sqlp převést na objekt
 			try{b=JSON.parse(sqlp);}catch(e){b={};}
@@ -449,6 +455,10 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			}
 			if(b==null)
 				return false;
+			if(typeof b['form']!='undefined'){
+				form=b['form'];
+				b['form']=undefined;
+			}
 			sqlp=JSON.stringify(b).convToUniEsc();
 		}
 		
@@ -469,18 +479,20 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 		selected_vals=this.val();
 		if(offlinedata==undefined){
 			refreshing=true;
+			var dt_ob={
+				s:sql,					//identifikace SQL dotazu - název
+				o:get_order_string(),	//řetězec řazení jen to co je za ORDER BY
+				p:sqlp,					//objekt parametrů
+				a:((b)?addquery:''),	//pokud se mají znovu načíst dodatečné dotazy, tak a obsahuje addquery
+				pg:lastpg,				//poslední použitá stránka
+				table:IDtbl,			//id tabulky - záleží na využití skriptem serveru
+				max_row:mr  			//max záznamů na řádek
+			};
+			Q.extend(dt_ob,form);
 			ajx = jQuery.ajax({
 				url:fscriptfilename,
 				type:requesttype,
-				data:{
-					s:sql,					//identifikace SQL dotazu - název
-					o:get_order_string(),	//řetězec řazení jen to co je za ORDER BY
-					p:sqlp,					//objekt parametrů
-					a:((b)?addquery:''),	//pokud se mají znovu načíst dodatečné dotazy, tak a obsahuje addquery
-					pg:lastpg,				//poslední použitá stránka
-					table:IDtbl,			//id tabulky - záleží na využití skriptem serveru
-					max_row:mr  			//max záznamů na řádek
-				},
+				data:dt_ob,
 				dataType:'text',//bez procesingu
 				success:(function(response,status,jqXHR){
 					this.gen(jqXHR);
@@ -1049,7 +1061,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			
 			tblr.innerHTML='';
 			tblr.style.display='';
-			gen_order_showstring(tblr);
+			gen_order_showstring.bind(this)(tblr);
 			// přidej řazeno podle s refresh
 			ob=JB.x.cel('div',{ob:tblr,csN:'ajaxtblheadotherbuttonmain',ad:{toto:this}});
 			div_right_menu=ob;
@@ -1209,6 +1221,7 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 		var y,p,x,n,b,e;
 		n=JB.x.cel('div',{ob:el,csN:'ajaxtblheadordermain'});
 		JB.x.cel('span',{ob:n,tx:lang.raz+' : ',csN:'ajaxtblheadordermaintx'});		
+		var btad=false;
 		for(var a=0;a<ord.length;a++){
 			if(o!='')o += '/';
 			p=ord[a][0];
@@ -1230,14 +1243,27 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			
 			b=JB.x.cel('div',{ob:n,csN:'ajaxtblheadorder ajaxheaderbuttonlink'});
 			JB.x.cel('a',{ob:b,tit:lang.ordby+ord[a][0],tx:p,csN:'ajaxtblheadorder ajaxheaderbuttoninnerlink'});
-			b.onclick=(function(x){
+			b.onclick=function(x){
 				try{
 					this.changefield(x);
 				}catch(e){
 					alert(e);
 				}
 				return false;
-			}).bind(this,ord[a][0])
+			}.bind(this,ord[a][0]);
+			btad=true;
+		}
+		if(btad){
+			b=JB.x.cel('div',{ob:n,csN:'ajaxtblheadorder ajaxheaderbuttonlink'});
+			JB.x.cel('a',{ob:b,tit:lang.ordcancel,tx:lang.ordcancel,csN:'ajaxtblheadorder ajaxheaderbuttoninnerlink'});
+			b.onclick=function(){
+				try{
+					this.changefield('');
+				}catch(e){
+					alert(e);
+				}
+				return false;
+			}.bind(this);
 		}
 		return lang.raz+' : ' + o;
 	}
@@ -1298,14 +1324,19 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 	}
 	
 	this.changefield = function(co){
+		//pokud co='' tak zruš řazení
 		lastpg=0; // nuluj page
 		var b=-1;
-		for(var a=0;a<ord.length;a++){
-			if(ord[a][0]==co)
-				b=a;
-		}	
-		if(b!=-1){
-			ord[b][1]=!ord[b][1];
+		if(co==''){
+			ord=[];
+		}else{
+			for(var a=0;a<ord.length;a++){
+				if(ord[a][0]==co)
+					b=a;
+			}	
+			if(b!=-1){
+				ord[b][1]=!ord[b][1];
+			}
 		}
 		ELtbl.ajxtbl.refresh();
 	}
@@ -1518,6 +1549,8 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			//vrať hodnotu
 			var v=[];
 			var a,x;
+			if(JB.is.und(last_data[0]))
+				return [];
 			if(last_data[0][selectable]!=undefined){
 				for(a=1;a<ElTblObj.rows.length;a++){
 					if(ElTblObj.rows[a].sel){
@@ -1536,6 +1569,8 @@ function JBajaxtable(in_sqlname, in_idtbl, in_p) {
 			//pokus se nastvit / vybrat hodnoty a nastav css
 			if(typeof x == typeof []){
 				var b;
+				if(JB.is.und(last_data[0]))
+					return;
 				if(last_data[0][selectable]!=undefined){
 					for(a=1;a<ElTblObj.rows.length;a++){
 						if(!JB.is.und(ElTblObj.rows[a].val)){

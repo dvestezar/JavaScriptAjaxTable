@@ -1,4 +1,13 @@
-﻿v 2.3.7
+﻿v 2.3.9
+	- FIX : řazení(klik na button zobrazeného řazení)
+	- ADD : pokud řazeno podle fieldu, tak se zobrazí tlačítko zrušit
+	- FIX : firstread on document ready delayed 200ms
+
+v 2.3.8
+	- ADD : init property "requesttype"
+	- ADD : pokud je použita funkce sqlparamfn tak je v prametrech využita nová položka viz. sqlparamfn - params['form']
+
+v 2.3.7
 	- ADD : requesttype v params při inicializaci
 
 v 2.3.6
